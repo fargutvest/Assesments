@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AxonSoft.Assesment
@@ -16,7 +13,14 @@ namespace AxonSoft.Assesment
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionEventHandler;
             Application.Run(new Form1());
+        }
+
+        private static void UnhandledExceptionEventHandler(object sender, UnhandledExceptionEventArgs ex)
+        {
+            Exception exception = (Exception)ex.ExceptionObject;
+            MessageBox.Show(exception.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }
