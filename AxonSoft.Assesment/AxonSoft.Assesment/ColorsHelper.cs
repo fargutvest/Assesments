@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
@@ -6,24 +7,30 @@ namespace AxonSoft.Assesment
 {
     public static class ColorsHelper
     {
-        public static Color[] GetAllShadesOfGreen()
+        public static Color[] GetShadesOfGreen(int countOfShades)
         {
+            #region color parameters
+            // these 4 parameters were found experimentally
+            // they can be changed to achieve a better difference of shades by eye
+            int minGreenHue = 120;
+            int maxGreenHue = 140;
+            double minBrightness = 0.1;
+            double maxBrightness = 0.7;
+            #endregion
+
             List<Color> allShadesOfGreen = new List<Color>();
 
-            int length = 255;
-            int step = 5;
-            for (int r = 0; r < length; r += step)
+            for (int r = 0; r < byte.MaxValue; r++)
             {
-                for (int g = 0; g < length; g += step)
+                for (int g = 0; g < byte.MaxValue; g ++)
                 {
-                    for (int b = 0; b < length; b += step)
+                    for (int b = 0; b < byte.MaxValue; b ++)
                     {
                         Color color = Color.FromArgb(r, g, b);
                         float hue = color.GetHue();
                         float brightness = color.GetBrightness();
-                        float saturation = color.GetSaturation();
 
-                        if (hue > 100 && hue < 150 && brightness > 0.1 && brightness < 0.8)
+                        if (hue > minGreenHue && hue < maxGreenHue && brightness > minBrightness && brightness < maxBrightness)
                         {
                             allShadesOfGreen.Add(color);
                         }
@@ -31,16 +38,16 @@ namespace AxonSoft.Assesment
                 }
             }
 
-            var ordered = allShadesOfGreen.OrderByDescending(_ => _.GetBrightness()).ToArray();
+            var orderedShades = allShadesOfGreen.OrderByDescending(_ => _.GetBrightness() * _.GetHue() * _.GetSaturation()).ToArray();
 
-            var result = new List<Color>();
-            for (int i = 0; i < ordered.Length; i += 100)
+            int samplingStep = Math.Abs(orderedShades.Length / countOfShades);
+
+            var sampling = new List<Color>();
+            for (int i = 0; i < orderedShades.Length; i += samplingStep)
             {
-                result.Add(ordered[i]);
+                sampling.Add(orderedShades[i]);
             }
-
-
-            return result.ToArray();
+            return sampling.ToArray();
         }
     }
 }

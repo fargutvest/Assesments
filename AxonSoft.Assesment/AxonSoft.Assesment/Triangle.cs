@@ -3,7 +3,7 @@ using System.Drawing;
 
 namespace AxonSoft.Assesment
 {
-    public struct Triangle
+    public class Triangle
     {
         public Point A { get; private set; }
         public Point B { get; private set; }
@@ -18,9 +18,13 @@ namespace AxonSoft.Assesment
             C = new Point(x3, y3);
         }
 
+        /// <summary>
+        /// Useful string representaton of Triangle object for debug.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
-            return $"{nameof(A)}={A}; {nameof(B)}={B}; {nameof(C)}={C}; Square={GetSquare()}";
+            return $"{nameof(A)}={A}; {nameof(B)}={B}; {nameof(C)}={C}; Square={Square}";
         }
 
         public bool IsPointBelongsToTriangle(Point point, Triangle triangle)
@@ -32,9 +36,7 @@ namespace AxonSoft.Assesment
             int b = (x[2] - x[0]) * (y[3] - y[2]) - (x[3] - x[2]) * (y[2] - y[0]);
             int c = (x[3] - x[0]) * (y[1] - y[3]) - (x[1] - x[3]) * (y[3] - y[0]);
 
-            if ((a >= 0 && b >= 0 && c >= 0) ||
-                (a <= 0 && b <= 0 && c <= 0) ||
-                a == 0 || b == 0 || c == 0)
+            if ((a >= 0 && b >= 0 && c >= 0) || (a <= 0 && b <= 0 && c <= 0))
             {
                 return true;
             }
@@ -44,30 +46,43 @@ namespace AxonSoft.Assesment
             }
         }
 
-        public bool IsIntersectsWithTriangle(Triangle triangle) => 
+        public bool IsOverlaping(Triangle triangle) => 
             IsPointBelongsToTriangle(triangle.A, this) && 
             IsPointBelongsToTriangle(triangle.B, this) && 
             IsPointBelongsToTriangle(triangle.C, this);
 
-
-        public double GetSquare()
+        public bool IsIntersecting(Triangle triangle) => 
+            IsOverlaping(triangle) == false && 
+            (IsPointBelongsToTriangle(triangle.A, this) ||
+            IsPointBelongsToTriangle(triangle.B, this) ||
+            IsPointBelongsToTriangle(triangle.C, this));
+        
+        private double square = 0;
+        public double Square
         {
-            double AB, BC, CA;
-
-            double GetLineLength(Point a, Point b)
+            get 
             {
-                return Math.Sqrt(Math.Pow((b.Y - a.Y), 2) + Math.Pow((b.X - a.X), 2));
+                if (this.square == 0)
+                {
+                    double AB, BC, CA;
+
+                    double GetLineLength(Point a, Point b)
+                    {
+                        return Math.Sqrt(Math.Pow((b.Y - a.Y), 2) + Math.Pow((b.X - a.X), 2));
+                    }
+
+                    AB = GetLineLength(A, B);
+                    BC = GetLineLength(B, C);
+                    CA = GetLineLength(C, A);
+
+
+                    double perimeter = (AB + BC + CA) / 2;
+                    this.square = Math.Sqrt(perimeter * (perimeter - AB) * (perimeter - BC) * (perimeter - CA));
+                }
+
+                return square;
             }
-
-            AB = GetLineLength(A, B);
-            BC = GetLineLength(B, C);
-            CA = GetLineLength(C, A);
-
-
-            double perimeter = (AB + BC + CA) / 2;
-            double square = Math.Sqrt(perimeter * (perimeter - AB) * (perimeter - BC) * (perimeter - CA));
-
-            return square;
+            
         }
     }
 }
