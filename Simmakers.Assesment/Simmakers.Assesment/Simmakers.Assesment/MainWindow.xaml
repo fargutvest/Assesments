@@ -1,0 +1,21 @@
+﻿<Window x:Class="Simmakers.Assesment.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Simmakers.Assesment" 
+        xmlns:ScottPlot="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        mc:Ignorable="d"
+        DataContext="{StaticResource MainWindowViewModel}"
+        Title="Simmakers.Assesment" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <local:ScottPlotWrapper PlotData="{Binding Data}" />
+        <DataGrid Grid.Column="1" Name="BooksDataGrid" ItemsSource="{Binding ChartPoints}"/>
+
+
+    </Grid>
+</Window>
