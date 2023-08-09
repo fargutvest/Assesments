@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
 
 namespace Simmakers.Assesment
 {
@@ -14,65 +8,58 @@ namespace Simmakers.Assesment
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private string titleX;
-        public string TitleX
+        private string labelX;
+        public string LabelX
         {
             get
             {
-                return titleX;
+                return labelX;
             }
             set
             {
-                titleX = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TitleX)));
+                labelX = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LabelX)));
             }
         }
 
-        private string titleY;
-        public string TitleY
+        private string labelY;
+        public string LabelY
         {
             get
             {
-                return titleY;
+                return labelY;
             }
             set
             {
-                titleY = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TitleY)));
+                labelY = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LabelY)));
             }
         }
 
-        private PlotData data;
-        public PlotData Data
-        {
-            get
-            {
-                return data;
-            }
-            set
-            {
-                data = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Data)));
-            }
-        }
+        public ObservableCollectionExtended<DataPoint> Data { get; set; }
 
-    
+        private Model model;
 
         public MainWindowViewModel()
         {
-            TitleX = "Температура";
-            TitleY = "Абсолютная отметка";
+            model = new Model();
 
+            LabelX = model.TempLabel;
+            LabelY = model.AbsLabel;
 
-
-            List<double> points = new List<double>();
-            for (int i = 0; i < 1000; i++)
+            List<DataPoint> dataPoints = new List<DataPoint>();
+            for (int i = 0; i < model.PointsX.Length; i++)
             {
-                points.Add(i);
+                dataPoints.Add(new DataPoint() { X = model.PointsX[i], Y = model.PointsY[i] });
             }
+            Data = new ObservableCollectionExtended<DataPoint>(dataPoints);
+            Data.ChildChanged += OnChildChanged;
+        }
 
-            Data = new PlotData(points.ToArray(), points.ToArray());
-
+        private void OnChildChanged(object sender, PropertyChangedEventArgs e)
+        {
+            Data = new ObservableCollectionExtended<DataPoint>(Data);
+            PropertyChanged.Invoke(this, new PropertyChangedEventArgs(nameof(Data)));
         }
     }
 }
