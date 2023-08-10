@@ -4,44 +4,58 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Simmakers.Assesment" 
+        xmlns:p = "clr-namespace:Simmakers.Assesment.Properties"
         mc:Ignorable="d"
         DataContext="{StaticResource MainWindowViewModel}"
-        Title="Simmakers.Assesment" Height="450" Width="800">
+        Title="Simmakers.Assesment" Height="450" Width="900">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="5*"/>
             <ColumnDefinition Width="3*"/>
         </Grid.ColumnDefinitions>
-        <local:ChartWrapper Grid.Column="0" PlotData="{Binding Data}" LabelX ="{Binding LabelX}" LabelY ="{Binding LabelY}" />
+        <local:ChartWrapper Grid.Column="0" PlotData="{Binding Data}" LabelX ="{x:Static p:Resources.ChartLabelX}" LabelY ="{x:Static p:Resources.ChartLabelY}"/>
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
+                    <ColumnDefinition Width="5*"/>
+                    <ColumnDefinition Width="6*"/>
                 </Grid.ColumnDefinitions>
-                <Label Content="{Binding LabelY}" Grid.Column="0"/>
-                <Label Content="{Binding LabelX}" Grid.Column="1"/>
+                <Label Content="{x:Static p:Resources.ChartLabelX}" Grid.Column="0"/>
+                <Label Content="{x:Static p:Resources.ChartLabelY}" Grid.Column="1"/>
             </Grid>
-            <ScrollViewer  Grid.Row="1">
-                <ItemsControl ItemsSource="{Binding Data, Mode=TwoWay}">
+            <ScrollViewer Grid.Row="1">
+                <ItemsControl ItemsSource="{Binding Data, Mode=TwoWay}" >
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="5*"/>
-                                    <ColumnDefinition Width="5*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Text="{Binding Y}"/>
-                                <TextBox Grid.Column="1" Text="{Binding X}"/>
-                            </Grid>
+                            <local:DataItem/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="1" Content="{x:Static p:Resources.Copy}" ToolTip="{x:Static p:Resources.CopyToolTip}" Command="{Binding ToClipboard}" />
+                <Button Grid.Column="2" Content="{x:Static p:Resources.Paste}" ToolTip="{x:Static p:Resources.PasteToolTip}" Command="{Binding FromClipboard}"/>
+                <Button Grid.Column="3" Content="{x:Static p:Resources.Clean}" ToolTip="{x:Static p:Resources.CleanToolTip}" Command="{Binding CleanDataPoints}" />
+                <Button Grid.Column="4" Content="{x:Static p:Resources.Add}" ToolTip="{x:Static p:Resources.AddToolTip}" Command="{Binding AddNewDataPoint}" />
+            </Grid>
         </Grid>
     </Grid>
 </Window>
