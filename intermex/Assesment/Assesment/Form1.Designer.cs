@@ -47,15 +47,15 @@
             this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.treeView1.Location = new System.Drawing.Point(3, 158);
+            this.treeView1.Location = new System.Drawing.Point(11, 161);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(590, 538);
+            this.treeView1.Size = new System.Drawing.Size(578, 538);
             this.treeView1.TabIndex = 6;
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(22, 142);
+            this.label4.Location = new System.Drawing.Point(8, 145);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(77, 13);
             this.label4.TabIndex = 7;
@@ -64,7 +64,7 @@
             // startBtn
             // 
             this.startBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.startBtn.Location = new System.Drawing.Point(518, 6);
+            this.startBtn.Location = new System.Drawing.Point(514, 9);
             this.startBtn.Name = "startBtn";
             this.startBtn.Size = new System.Drawing.Size(75, 23);
             this.startBtn.TabIndex = 11;
@@ -75,7 +75,7 @@
             // cancelBtn
             // 
             this.cancelBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cancelBtn.Location = new System.Drawing.Point(518, 35);
+            this.cancelBtn.Location = new System.Drawing.Point(514, 38);
             this.cancelBtn.Name = "cancelBtn";
             this.cancelBtn.Size = new System.Drawing.Size(75, 23);
             this.cancelBtn.TabIndex = 12;
@@ -85,7 +85,7 @@
             // 
             // countOfThreads
             // 
-            this.countOfThreads.Location = new System.Drawing.Point(106, 64);
+            this.countOfThreads.Location = new System.Drawing.Point(102, 67);
             this.countOfThreads.Minimum = new decimal(new int[] {
             1,
             0,
@@ -103,7 +103,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 19);
+            this.label1.Location = new System.Drawing.Point(8, 22);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(59, 13);
             this.label1.TabIndex = 15;
@@ -112,7 +112,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 45);
+            this.label2.Location = new System.Drawing.Point(8, 48);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(55, 13);
             this.label2.TabIndex = 16;
@@ -121,7 +121,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 71);
+            this.label3.Location = new System.Drawing.Point(8, 74);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(88, 13);
             this.label3.TabIndex = 17;
@@ -131,7 +131,7 @@
             // 
             this.searchFor.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.searchFor.Location = new System.Drawing.Point(106, 9);
+            this.searchFor.Location = new System.Drawing.Point(102, 12);
             this.searchFor.Name = "searchFor";
             this.searchFor.Size = new System.Drawing.Size(406, 20);
             this.searchFor.TabIndex = 18;
@@ -140,7 +140,7 @@
             // 
             this.searchIn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.searchIn.Location = new System.Drawing.Point(106, 38);
+            this.searchIn.Location = new System.Drawing.Point(102, 41);
             this.searchIn.Name = "searchIn";
             this.searchIn.Size = new System.Drawing.Size(406, 20);
             this.searchIn.TabIndex = 19;
@@ -150,10 +150,11 @@
             // 
             this.status.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.status.Location = new System.Drawing.Point(3, 715);
+            this.status.Enabled = false;
+            this.status.Location = new System.Drawing.Point(11, 718);
             this.status.Name = "status";
             this.status.ReadOnly = true;
-            this.status.Size = new System.Drawing.Size(590, 20);
+            this.status.Size = new System.Drawing.Size(578, 20);
             this.status.TabIndex = 13;
             // 
             // Form1

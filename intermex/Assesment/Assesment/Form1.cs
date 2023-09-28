@@ -63,14 +63,23 @@ namespace Assesment
                 }));
 
                 Search(searchIn, searchFor, threads);
-
-                Invoke((Action)(() =>
-                {
-                    status.Text = "Complete!";
-                }));
             }).ContinueWith(t => 
             {
-                cancelSearch = true;
+                if (cancelSearch == true)
+                {
+                    Invoke((Action)(() =>
+                    {
+                        status.Text = "canceled";
+                    }));
+                }
+                else
+                {
+                    cancelSearch = true;
+                    Invoke((Action)(() =>
+                    {
+                        status.Text = "Complete!";
+                    }));
+                }
             });
         }
 
