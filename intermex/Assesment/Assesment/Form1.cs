@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,11 +12,12 @@ namespace Assesment
 {
     public partial class Form1 : Form
     {
-        ConcurrentBag<string> touchedDirs = new ConcurrentBag<string>();
-        ConcurrentDictionary<string, Bitmap> icons = new ConcurrentDictionary<string, Bitmap>();
-        TreeNode treeRoot;
-        bool cancelSearch = true;
-        string fodlerKey = "folder";
+        private ConcurrentBag<string> touchedDirs = new ConcurrentBag<string>();
+        private ConcurrentDictionary<string, Bitmap> iconsMap = new ConcurrentDictionary<string, Bitmap>();
+        private TreeNode treeRoot;
+        private bool cancelSearch = true;
+        private string fodlerIconKey = "folder";
+        private Bitmap folderIcon = (Bitmap)Bitmap.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
 
         public Form1()
         {
@@ -31,27 +31,30 @@ namespace Assesment
                 return;
             }
 
-            touchedDirs = new ConcurrentBag<string>();
-            icons = new ConcurrentDictionary<string, Bitmap>();
-
             cancelSearch = false;
             var searchFor = this.searchFor.Text;
             searchFor = string.IsNullOrEmpty(searchFor) ? "*.*" : searchFor;
             var searchIn = this.searchIn.Text;
             var threads = (int)countOfThreads.Value;
 
-            var icon = (Bitmap)Bitmap.FromFile("icon74.ico");
-            UpdateIcons(fodlerKey, icon);
+            
+            if (Directory.Exists(searchIn) == false)
+            {
+                MessageBox.Show($"Search path not found! {Environment.NewLine}{Environment.NewLine} {searchIn}", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                cancelSearch = true;
+                return;
+            }
+            UpdateIcons(fodlerIconKey, folderIcon);
 
             Task.Run(() =>
             {
                 var parents = GetParentDirectoriesTreeList(new DirectoryInfo(searchIn));
                 var first = parents.First().FullName;
-                treeRoot = new TreeNode(first) { Name = first, ImageKey = fodlerKey, SelectedImageKey = fodlerKey };
+                treeRoot = new TreeNode(first) { Name = first, ImageKey = fodlerIconKey, SelectedImageKey = fodlerIconKey };
                 TreeNode currentNode = treeRoot;
                 foreach (var item in parents.Skip(1))
                 {
-                    var newNode = AddNodeToTree(currentNode, item.FullName, item.Name, fodlerKey);
+                    var newNode = AddNodeToTree(currentNode, item.FullName, item.Name, fodlerIconKey);
                     currentNode = newNode;
                 }
 
@@ -63,23 +66,13 @@ namespace Assesment
                 }));
 
                 Search(searchIn, searchFor, threads);
-            }).ContinueWith(t => 
+            }).ContinueWith(t =>
             {
-                if (cancelSearch == true)
+                Invoke((Action)(() =>
                 {
-                    Invoke((Action)(() =>
-                    {
-                        status.Text = "canceled";
-                    }));
-                }
-                else
-                {
+                    status.Text = cancelSearch ? "canceled" : "Complete!";
                     cancelSearch = true;
-                    Invoke((Action)(() =>
-                    {
-                        status.Text = "Complete!";
-                    }));
-                }
+                }));
             });
         }
 
@@ -93,6 +86,9 @@ namespace Assesment
         {
             try
             {
+                touchedDirs = new ConcurrentBag<string>();
+                iconsMap = new ConcurrentDictionary<string, Bitmap>();
+
                 var allExistedFiles = Directory.EnumerateFiles(searchIn);
                 Parallel.ForEach(allExistedFiles, new ParallelOptions() { MaxDegreeOfParallelism = threads },
                 file =>
@@ -126,25 +122,25 @@ namespace Assesment
                                 parents.Reverse();
                             }
 
-                            var foundinTree = FindInTree(parents.First().FullName);
+                            var fileIconKey = Path.GetExtension(fileItem);
+                            if (fileIconKey == ".exe")
+                            {
+                                fileIconKey = fileItem;
+                            }
+                            var icon = Icon.ExtractAssociatedIcon(fileItem).ToBitmap();
+
+                            var foundinTree = FindNodeInTreeByKey(parents.First().FullName);
                             if (foundinTree != null)
                             {
-                                var key = Path.GetExtension(fileItem);
-                                if (key == ".exe")
-                                {
-                                    key = fileItem;
-                                }
-                                var icon = Icon.ExtractAssociatedIcon(fileItem).ToBitmap();
-
-                                UpdateIcons(key, icon);
-                                AddNodeToTree(foundinTree, fileItem, fileName, key);
+                                UpdateIcons(fileIconKey, icon);
+                                AddNodeToTree(foundinTree, fileItem, fileName, fileIconKey);
                             }
                             else
                             {
                                 int i = 1;
                                 while (foundinTree == null)
                                 {
-                                    foundinTree = FindInTree(parents[i].FullName);
+                                    foundinTree = FindNodeInTreeByKey(parents[i].FullName);
                                     i++;
                                 }
 
@@ -152,19 +148,12 @@ namespace Assesment
 
                                 for (int j = i - 2; j >= 0; j--)
                                 {
-                                    var newNode = AddNodeToTree(currentNode, parents[j].FullName, parents[j].Name, fodlerKey);
+                                    var newNode = AddNodeToTree(currentNode, parents[j].FullName, parents[j].Name, fodlerIconKey);
                                     currentNode = newNode;
                                 }
 
-                                var key = Path.GetExtension(fileItem);
-                                if (key == ".exe")
-                                {
-                                    key = fileItem;
-                                }
-                                var icon = Icon.ExtractAssociatedIcon(fileItem).ToBitmap();
-
-                                UpdateIcons(key, icon);
-                                AddNodeToTree(currentNode, fileItem, fileName, key);
+                                UpdateIcons(fileIconKey, icon);
+                                AddNodeToTree(currentNode, fileItem, fileName, fileIconKey);
                             }
                         }
                     }
@@ -179,26 +168,33 @@ namespace Assesment
                     Search(item, searchFor, threads);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.WriteLine(searchIn);
+                Debug.WriteLine(ex.Message);
             }
-
         }
+
 
         private void UpdateStatus(string message)
         {
-            Invoke((Action)(() =>
+            if (InvokeRequired)
+            {
+                Invoke((Action)(() =>
+                {
+                    status.Text = message;
+                }));
+            }
+            else
             {
                 status.Text = message;
-            }));
+            }
         }
 
         private void UpdateIcons(string key, Bitmap icon)
         {
-            if (icons.ContainsKey(key) == false)
+            if (iconsMap.ContainsKey(key) == false)
             {
-                icons[key] = icon;
+                iconsMap[key] = icon;
 
                 Invoke((Action)(() =>
                 {
@@ -207,7 +203,7 @@ namespace Assesment
                         treeView1.ImageList = new ImageList();
                         treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
                     }
-                    foreach (var item in icons)
+                    foreach (var item in iconsMap)
                     {
                         using (var ms = new MemoryStream())
                         {
@@ -222,7 +218,7 @@ namespace Assesment
         private TreeNode AddNodeToTree(TreeNode targetNode, string key, string value, string imageKey = "")
         {
             TreeNode addedNode = null;
-            Invoke((Action)(() =>
+            void add ()
             {
                 targetNode.ExpandAll();
                 if (string.IsNullOrEmpty(imageKey))
@@ -235,12 +231,24 @@ namespace Assesment
                 }
 
                 addedNode.ExpandAll();
-            }));
+            }
+            
+            if (InvokeRequired)
+            {
+                Invoke((Action)(() =>
+                {
+                    add();
+                }));
+            }
+            else
+            {
+                add();
+            }
 
             return addedNode;
         }
 
-        private TreeNode FindInTree(string key)
+        private TreeNode FindNodeInTreeByKey(string key)
         {
             if (treeRoot.Name == key)
             {
