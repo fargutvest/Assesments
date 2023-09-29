@@ -54,6 +54,10 @@ namespace Assesment
                 TreeNode currentNode = treeRoot;
                 foreach (var item in parents.Skip(1))
                 {
+                    if (cancelSearch == true)
+                    {
+                        return;
+                    }
                     var newNode = AddNodeToTree(currentNode, item.FullName, item.Name, fodlerIconKey);
                     currentNode = newNode;
                 }
@@ -108,6 +112,10 @@ namespace Assesment
                         Dictionary<string, List<DirectoryInfo>> touched = new Dictionary<string, List<DirectoryInfo>>();
                         foreach (var fileItem in foundByPattern)
                         {
+                            if (cancelSearch == true)
+                            {
+                                return;
+                            }
                             var fileName = Path.GetFileName(fileItem);
                             var directoryOfFile = new FileInfo(fileItem).Directory;
 
@@ -138,7 +146,7 @@ namespace Assesment
                             else
                             {
                                 int i = 1;
-                                while (foundinTree == null)
+                                while (foundinTree == null && cancelSearch == false)
                                 {
                                     foundinTree = FindNodeInTreeByKey(parents[i].FullName);
                                     i++;
@@ -215,21 +223,13 @@ namespace Assesment
             }
         }
 
-        private TreeNode AddNodeToTree(TreeNode targetNode, string key, string value, string imageKey = "")
+        private TreeNode AddNodeToTree(TreeNode targetNode, string key, string value, string imageKey)
         {
             TreeNode addedNode = null;
             void add ()
             {
                 targetNode.ExpandAll();
-                if (string.IsNullOrEmpty(imageKey))
-                {
-                    addedNode = targetNode.Nodes.Add(key, value);
-                }
-                else
-                {
-                    addedNode = targetNode.Nodes.Add(key, value, imageKey, imageKey);
-                }
-
+                addedNode = targetNode.Nodes.Add(key, value, imageKey, imageKey);
                 addedNode.ExpandAll();
             }
             
@@ -265,7 +265,7 @@ namespace Assesment
             DirectoryInfo root = directoryInfo.Root;
             DirectoryInfo parent = directoryInfo;
             var parents = new List<DirectoryInfo>() { parent };
-            while (parent.FullName != root.FullName)
+            while (parent.FullName != root.FullName && cancelSearch == false)
             {
                 parent = parent.Parent;
                 parents.Add(parent);
