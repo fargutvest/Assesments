@@ -120,55 +120,33 @@ namespace Assesment
                             {
                                 if (treeRoot == null)
                                 {
-                                    var rootSearchIn = parentsUntilRoot.Any() ? parentsUntilRoot.Last() : dirOfFoundFileItem;
-
-                                    treeRoot = new TreeNode(rootSearchIn.FullName) { Name = rootSearchIn.FullName, ImageKey = fodlerIconKey, SelectedImageKey = fodlerIconKey };
-                                    TreeNode currentNode = treeRoot;
-                                    for (int i = parentsUntilRoot.Count - 2; i >= 0; i--)
-                                    {
-                                        if (cancelSearch == true)
-                                        {
-                                            return;
-                                        }
-                                        currentNode = AddNodeToTree(currentNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
-                                    }
-                                    Invoke((Action)(() =>
-                                    {
-                                        treeView1.Nodes.Clear();
-                                        treeRoot.ExpandAll();
-                                        treeView1.Nodes.Add(treeRoot);
-                                    }));
+                                    InitTreeRootByFoundFile(parentsUntilRoot, dirOfFoundFileItem);
                                 }
                             }
 
+                            var targetNode = FindNodeInTreeByKey(dirOfFoundFileItem.FullName);
 
-                            var fileName = Path.GetFileName(foundFileItem);
-                            var foundNode = FindNodeInTreeByKey(dirOfFoundFileItem.FullName);
-
-                            if (foundNode != null)
-                            {
-                                AddNodeToTree(foundNode, foundFileItem, fileName, fileIconKey);
-                            }
-                            else
+                            if (targetNode == null)
                             {
                                 int i = 0;
-                                while (foundNode == null && cancelSearch == false)
+                                while (targetNode == null && cancelSearch == false)
                                 {
-                                    foundNode = FindNodeInTreeByKey(parentsUntilRoot[i].FullName);
+                                    targetNode = FindNodeInTreeByKey(parentsUntilRoot[i].FullName);
                                     i++;
                                 }
                                 int indexOfFoundParent = i - 1;
 
-                                TreeNode currentNode = foundNode;
+                                TreeNode currentNode = targetNode;
 
                                 for (i = indexOfFoundParent - 1; i >= 0; i--)
                                 {
                                     currentNode = AddNodeToTree(currentNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
                                 }
 
-                                currentNode = AddNodeToTree(currentNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, fodlerIconKey);
-                                AddNodeToTree(currentNode, foundFileItem, fileName, fileIconKey);
+                                targetNode = AddNodeToTree(currentNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, fodlerIconKey);
                             }
+
+                            AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey);
                         }
                     }
                 });
@@ -186,6 +164,29 @@ namespace Assesment
             {
                 Debug.WriteLine(ex.Message);
             }
+        }
+
+        private void InitTreeRootByFoundFile(List<DirectoryInfo> parentsUntilRoot, DirectoryInfo dirOfFoundFileItem)
+        {
+            var rootSearchIn = parentsUntilRoot.Any() ? parentsUntilRoot.Last() : dirOfFoundFileItem;
+
+            treeRoot = new TreeNode(rootSearchIn.FullName) { Name = rootSearchIn.FullName, ImageKey = fodlerIconKey, SelectedImageKey = fodlerIconKey };
+            TreeNode currentNode = treeRoot;
+            for (int i = parentsUntilRoot.Count - 2; i >= 0; i--)
+            {
+                if (cancelSearch == true)
+                {
+                    return;
+                }
+                currentNode = AddNodeToTree(currentNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
+            }
+
+            Invoke((Action)(() =>
+            {
+                treeView1.Nodes.Clear();
+                treeRoot.ExpandAll();
+                treeView1.Nodes.Add(treeRoot);
+            }));
         }
 
 
