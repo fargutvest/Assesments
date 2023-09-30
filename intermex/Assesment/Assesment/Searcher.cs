@@ -1,79 +1,81 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.IO;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Linq;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Assesment
 {
     internal class Searcher
     {
         private ConcurrentBag<string> touchedDirs = new ConcurrentBag<string>();
-        private object syncTreeRoot = new object();
-        private bool cancelSearch = true;
+        private ConcurrentDictionary<string, Bitmap> iconsCache = new ConcurrentDictionary<string, Bitmap>();
+        private bool cancel = true;
         private string fodlerIconKey = "folder";
         private Bitmap folderIcon = (Bitmap)Bitmap.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
-        private ConcurrentDictionary<string, Bitmap> iconsMap;
-        private TreeNode treeRoot;
-       
-        public event Action<string> SearchCompleted;
-        public event Action<TreeNode> TreeRootInited;
-        public event Action<string> Progress;
+        private NodeModel treeRoot;
+        private object syncTreeRoot = new object();
+
+        public event Action<NodeModel> TreeRootInited;
+        public event Action<NodeModel> AddedNodeToTree;
         public event Action<string, Bitmap> IconAdded;
+        public event Action<string> Progress;
         public event Action<string> Message;
-        public event Func<TreeNode, string, string, string, TreeNode> AddNodeToTree;
 
 
         public void Start(string searchFor, string searchIn, int countOfThreads)
         {
-            if (cancelSearch == false)
+            if (cancel == false) // if already started then do nothing
             {
                 return;
             }
 
-            cancelSearch = false;
+            cancel = false;
 
             if (Directory.Exists(searchIn) == false)
             {
                 Message?.Invoke($"Search path not found! {Environment.NewLine}{Environment.NewLine} {searchIn}");
-                cancelSearch = true;
+                cancel = true;
                 return;
             }
 
-            touchedDirs = new ConcurrentBag<string>();
-            iconsMap = new ConcurrentDictionary<string, Bitmap>();
-            treeRoot = null;
-            UpdateIcons(fodlerIconKey, folderIcon);
+            Flush();
 
             Task.Run(() =>
             {
                 SearchRecursively(searchIn, searchFor, countOfThreads);
             }).ContinueWith(t =>
             {
-                SearchCompleted?.Invoke(cancelSearch ? "canceled" : "Complete!");
-                cancelSearch = true;
+                Progress?.Invoke(cancel ? "Canceled" : "Complete!");
+                cancel = true;
             });
+        }
+
+        private void Flush()
+        {
+            TryRegisterIcon(fodlerIconKey, folderIcon);
+            touchedDirs = new ConcurrentBag<string>();
+            treeRoot = null;
         }
 
         public void Cancel()
         {
-            cancelSearch = true;
+            cancel = true;
         }
 
 
-        private void SearchRecursively(string searchIn, string searchFor, int threads)
+        private void SearchRecursively(string searchIn, string searchPattern, int threads)
         {
             try
             {
-                var allExistedFiles = Directory.EnumerateFiles(searchIn);
-                Parallel.ForEach(allExistedFiles, new ParallelOptions() { MaxDegreeOfParallelism = threads },
+                var allExistedFilesQuery = Directory.EnumerateFiles(searchIn);
+                Parallel.ForEach(allExistedFilesQuery, new ParallelOptions() { MaxDegreeOfParallelism = threads },
                 file =>
                 {
-                    if (cancelSearch == true)
+                    if (cancel == true)
                     {
                         return;
                     }
@@ -81,14 +83,15 @@ namespace Assesment
                     var dirToTouch = Path.GetDirectoryName(file);
                     if (touchedDirs.Contains(dirToTouch) == false)
                     {
-                        Progress?.Invoke(dirToTouch);
                         touchedDirs.Add(dirToTouch);
-                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchFor).ToList();
+                        Progress?.Invoke(dirToTouch);
 
-                        Dictionary<string, List<DirectoryInfo>> cacheOfParents = new Dictionary<string, List<DirectoryInfo>>();
+                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern);
+                        var cacheOfParents = new Dictionary<string, List<DirectoryInfo>>();
+
                         foreach (var foundFileItem in foundFilesByPattern)
                         {
-                            if (cancelSearch == true)
+                            if (cancel == true)
                             {
                                 return;
                             }
@@ -105,16 +108,16 @@ namespace Assesment
                                 parentsUntilRoot = GetParentsUntilRoot(dirOfFoundFileItem);
                             }
 
-                            // different exe files may have different icons
-                            var fileIconKey = foundFileItem.EndsWith(".exe") ? foundFileItem : Path.GetExtension(foundFileItem);
-                            var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
-                            UpdateIcons(fileIconKey, fileIcon);
-
                             lock (syncTreeRoot)
                             {
                                 if (treeRoot == null)
                                 {
-                                    InitTreeRootByFoundFile(parentsUntilRoot, dirOfFoundFileItem);
+                                    var dirsUntilRoot = new List<DirectoryInfo>
+                                    {
+                                        dirOfFoundFileItem
+                                    };
+                                    dirsUntilRoot.AddRange(parentsUntilRoot);
+                                    InitTreeOfNodes(dirsUntilRoot);
                                 }
                             }
 
@@ -122,36 +125,40 @@ namespace Assesment
 
                             if (targetNode == null)
                             {
-                                int i = 0;
-                                while (targetNode == null && cancelSearch == false)
+                                int indexOfFoundParent = 0;
+                               
+                                while (targetNode == null && cancel == false)
                                 {
-                                    targetNode = FindNodeInTreeByKey(parentsUntilRoot[i].FullName);
-                                    i++;
+                                    targetNode = FindNodeInTreeByKey(parentsUntilRoot[indexOfFoundParent].FullName);
+                                    indexOfFoundParent++;
                                 }
-                                int indexOfFoundParent = i - 1;
+                                indexOfFoundParent--;
 
-                                TreeNode currentNode = targetNode;
-
-                                for (i = indexOfFoundParent - 1; i >= 0; i--)
+                                for (var i = indexOfFoundParent - 1; i >= 0; i--)
                                 {
-                                    currentNode = AddNodeToTree?.Invoke(currentNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
+                                    targetNode = AddNodeToTree(targetNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
                                 }
 
-                                targetNode = AddNodeToTree?.Invoke(currentNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, fodlerIconKey);
+                                targetNode = AddNodeToTree(targetNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, fodlerIconKey);
                             }
 
-                            AddNodeToTree?.Invoke(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey);
+                            // different exe files may have different icons
+                            var fileIconKey = foundFileItem.EndsWith(".exe") ? foundFileItem : Path.GetExtension(foundFileItem);
+                            var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
+                            TryRegisterIcon(fileIconKey, fileIcon);
+
+                            AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey);
                         }
                     }
                 });
 
                 foreach (var item in Directory.GetDirectories(searchIn))
                 {
-                    if (cancelSearch == true)
+                    if (cancel == true)
                     {
                         return;
                     }
-                    SearchRecursively(item, searchFor, threads);
+                    SearchRecursively(item, searchPattern, threads);
                 }
             }
             catch (Exception ex)
@@ -160,43 +167,80 @@ namespace Assesment
             }
         }
 
-        private void InitTreeRootByFoundFile(List<DirectoryInfo> parentsUntilRoot, DirectoryInfo dirOfFoundFileItem)
+        private void InitTreeOfNodes(List<DirectoryInfo> dirsUntilRoot)
         {
-            var rootSearchIn = parentsUntilRoot.Any() ? parentsUntilRoot.Last() : dirOfFoundFileItem;
+            var rootDir = dirsUntilRoot.Last();
 
-            treeRoot = new TreeNode(rootSearchIn.FullName) { Name = rootSearchIn.FullName, ImageKey = fodlerIconKey, SelectedImageKey = fodlerIconKey };
-            TreeNode currentNode = treeRoot;
-            for (int i = parentsUntilRoot.Count - 2; i >= 0; i--)
+            treeRoot = new NodeModel() 
             {
-                if (cancelSearch == true)
+                Name = rootDir.FullName, 
+                Text = rootDir.Name, 
+                ImageKey = fodlerIconKey, 
+                SelectedImageKey = fodlerIconKey 
+            };
+
+            NodeModel currentNode = treeRoot;
+            for (int i = dirsUntilRoot.Count - 1; i > 0; i--)
+            {
+                if (cancel == true)
                 {
                     return;
                 }
-                currentNode = AddNodeToTree?.Invoke(currentNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
+
+                currentNode = AddNodeToTree(currentNode, dirsUntilRoot[i].FullName, dirsUntilRoot[i].Name, fodlerIconKey);
             }
 
             TreeRootInited?.Invoke(treeRoot);
         }
 
-        private void UpdateIcons(string key, Bitmap icon)
+        private NodeModel AddNodeToTree(NodeModel target, string name, string text, string iconKey)
         {
-            if (iconsMap.ContainsKey(key) == false)
+            var newNode = new NodeModel() 
             {
-                iconsMap[key] = icon;
+                Text = text, 
+                Name = name, 
+                ImageKey = iconKey, 
+                SelectedImageKey = iconKey 
+            };
+
+            target.Nodes.Add(newNode);
+            newNode.Parent = target;
+            AddedNodeToTree?.Invoke(newNode);
+            return newNode;
+        }
+
+        private void TryRegisterIcon(string key, Bitmap icon)
+        {
+            if (iconsCache.ContainsKey(key) == false)
+            {
+                iconsCache[key] = icon;
                 IconAdded?.Invoke(key, icon);
             }
         }
 
-        private TreeNode FindNodeInTreeByKey(string key)
+        private NodeModel FindNodeInTreeByKey(string key)
         {
-            if (treeRoot.Name == key)
+            NodeModel recurse(NodeModel node)
             {
-                return treeRoot;
+                if (node.Name == key)
+                {
+                    return node;
+                }
+                else
+                {
+                    foreach (var nodeItem in node.Nodes)
+                    {
+                        NodeModel foundNode = recurse(nodeItem);
+                        if (foundNode != null)
+                        {
+                            return foundNode;
+                        }
+                    }
+                }
+                return null;
             }
 
-            var foundTreeNodes = treeRoot.Nodes.Find(key, searchAllChildren: true);
-
-            return foundTreeNodes.FirstOrDefault();
+            return recurse(treeRoot);
         }
 
         private List<DirectoryInfo> GetParentsUntilRoot(DirectoryInfo directoryInfo)
@@ -204,7 +248,7 @@ namespace Assesment
             DirectoryInfo root = directoryInfo.Root;
             DirectoryInfo parent = directoryInfo;
             var parents = new List<DirectoryInfo>();
-            while (parent.FullName != root.FullName && cancelSearch == false)
+            while (parent.FullName != root.FullName && cancel == false)
             {
                 parent = parent.Parent;
                 parents.Add(parent);

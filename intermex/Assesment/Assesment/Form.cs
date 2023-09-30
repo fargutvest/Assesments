@@ -5,16 +5,20 @@ using System.Windows.Forms;
 
 namespace Assesment
 {
-    public partial class Form2 : Form
+    public partial class Form : System.Windows.Forms.Form
     {
-        private Searcher2 searcher;
+        private Searcher searcher;
 
         private TreeNode rootTreeNode;
 
-        public Form2()
+        public Form()
         {
             InitializeComponent();
-            searcher = new Searcher2();
+
+            treeView1.ImageList = new ImageList();
+            treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
+
+            searcher = new Searcher();
             searcher.TreeRootInited += Searcher_TreeRootInited;
             searcher.Message += Searcher_Message;
             searcher.Progress += Searcher_Progress;
@@ -65,7 +69,7 @@ namespace Assesment
 
         private void Searcher_AddedNodeToTree(NodeModel addedNode)
         {
-            void add()
+            Invoke((Action)(() =>
             {
                 if (rootTreeNode != null)
                 {
@@ -84,48 +88,23 @@ namespace Assesment
                     targetTreeNode.ExpandAll();
                     addedTreeNode.ExpandAll();
                 }
-            }
-
-            if (InvokeRequired)
-            {
-                Invoke((Action)(() =>
-                {
-                    add();
-                }));
-            }
-            else
-            {
-                add();
-            }
+            }));
         }
 
         private void Searcher_IconAdded(string key, Bitmap icon)
         {
             Invoke((Action)(() =>
             {
-                if (treeView1.ImageList == null)
-                {
-                    treeView1.ImageList = new ImageList();
-                    treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
-                }
-
                 treeView1.ImageList.Images.Add(key, icon);
             }));
         }
 
         private void Searcher_Progress(string message)
         {
-            if (InvokeRequired)
-            {
-                Invoke((Action)(() =>
-                {
-                    status.Text = message;
-                }));
-            }
-            else
+            Invoke((Action)(() =>
             {
                 status.Text = message;
-            }
+            }));
         }
 
         private void Searcher_Message(string message)
