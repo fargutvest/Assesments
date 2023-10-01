@@ -41,7 +41,7 @@ namespace Assesment
             {
                 if (searchFor.Contains(invalidChar))
                 {
-                    var message = $"Search pattern contains invalid symol '{invalidChar}'!";
+                    var message = $"Search pattern contains invalid symbol '{invalidChar}'!";
                     Message?.Invoke(message);
                     cancel = true;
                     Finished?.Invoke(message);

@@ -42,13 +42,15 @@ namespace Assesment
         {
             lock (syncRootTree)
             {
+               
                 rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
-
                 OnSafeAndDispatch(() =>
                 {
+                    var scrollPos = treeView1.GetScrollPos();
                     treeView1.Nodes.Clear();
                     rootOfTree.ExpandAll();
                     treeView1.Nodes.Add(rootOfTree);
+                    treeView1.SetScrollPos(scrollPos);
                 });
             }
         }
@@ -57,15 +59,16 @@ namespace Assesment
         {
             lock (syncRootTree)
             {
-                if (rootOfTree != null)
+                OnSafeAndDispatch(() =>
                 {
-                    treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
-
-                    OnSafeAndDispatch(() =>
+                    var scrollPos = treeView1.GetScrollPos();
+                    if (rootOfTree != null)
                     {
+                        treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
                         rootOfTree.ExpandAll();
-                    });
-                }
+                    }
+                    treeView1.SetScrollPos(scrollPos);
+                });
             }
         }
 
@@ -138,20 +141,12 @@ namespace Assesment
             {
                 searchForCb.Items.Clear();
                 searchForCb.Items.AddRange(File.ReadAllLines(searchForCacheFilePath));
-                if (searchForCb.Items.Count > 0)
-                {
-                    searchForCb.SelectedIndex = 0;
-                }
             }
 
             if (File.Exists(searchInCacheFilePath))
             {
                 searchInCb.Items.Clear();
                 searchInCb.Items.AddRange(File.ReadAllLines(searchInCacheFilePath));
-                if (searchInCb.Items.Count > 0)
-                {
-                    searchInCb.SelectedIndex = 0;
-                }
             }
 
             if (File.Exists(countOfThreadsCacheFilePath))
