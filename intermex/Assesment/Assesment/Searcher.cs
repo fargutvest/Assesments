@@ -163,25 +163,25 @@ namespace Assesment
                                 }
                             }
 
-                            var targetNode = FindNodeInTreeByKey(dirOfFoundFileItem.FullName);
+                            var targetModel = FindNodeInTreeByKey(dirOfFoundFileItem.FullName);
 
-                            if (targetNode == null)
+                            if (targetModel == null)
                             {
                                 int indexOfFoundParent = 0;
                                
-                                while (targetNode == null && cancel == false)
+                                while (targetModel == null && cancel == false)
                                 {
-                                    targetNode = FindNodeInTreeByKey(parentsUntilRoot[indexOfFoundParent].FullName);
+                                    targetModel = FindNodeInTreeByKey(parentsUntilRoot[indexOfFoundParent].FullName);
                                     indexOfFoundParent++;
                                 }
                                 indexOfFoundParent--;
 
                                 for (var i = indexOfFoundParent - 1; i >= 0; i--)
                                 {
-                                    targetNode = AddNodeToTree(targetNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, folderIconKey);
+                                    targetModel = AddNodeToTree(targetModel, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, folderIconKey);
                                 }
 
-                                targetNode = AddNodeToTree(targetNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, folderIconKey);
+                                targetModel = AddNodeToTree(targetModel, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, folderIconKey);
                             }
 
                             // different exe files may have different icons
@@ -189,8 +189,8 @@ namespace Assesment
                             var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
                             TryRegisterIcon(fileIconKey, fileIcon);
 
-                            var newNode = AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
-                            AddedNodeToTree?.Invoke(newNode);
+                            var newModel = AddNodeToTree(targetModel, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
+                            AddedNodeToTree?.Invoke(newModel);
                         }
                     }
                 });
@@ -237,7 +237,7 @@ namespace Assesment
 
         private NodeModel AddNodeToTree(NodeModel target, string name, string text, string iconKey, bool isFile = false)
         {
-            var newNode = new NodeModel() 
+            var newModel = new NodeModel() 
             {
                 Text = text, 
                 Name = name, 
@@ -246,9 +246,9 @@ namespace Assesment
                 IsFile = isFile
             };
 
-            target.Nodes.Add(newNode);
-            newNode.Parent = target;
-            return newNode;
+            target.Nodes.Add(newModel);
+            newModel.Parent = target;
+            return newModel;
         }
 
         private void TryRegisterIcon(string key, Bitmap icon)

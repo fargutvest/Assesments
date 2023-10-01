@@ -25,19 +25,19 @@ namespace Assesment
                 SelectedImageKey = rootModel.SelectedImageKey
             };
 
-            void recurse(TreeNode treeNode, NodeModel node)
+            void recurse(TreeNode treeNode, NodeModel model)
             {
                 var addedTreeNode = new TreeNode()
                 {
-                    Text = node.Text,
-                    Name = node.Name,
-                    SelectedImageKey = node.SelectedImageKey,
-                    ImageKey = node.ImageKey
+                    Text = model.Text,
+                    Name = model.Name,
+                    SelectedImageKey = model.SelectedImageKey,
+                    ImageKey = model.ImageKey
                 };
 
                 treeNode.Nodes.Add(addedTreeNode);
 
-                foreach (var subNode in node.Nodes)
+                foreach (var subNode in model.Nodes)
                 {
                     recurse(addedTreeNode, subNode);
                 }
@@ -104,22 +104,22 @@ namespace Assesment
             return targetNode;
         }
 
-        public void AddNodeToTree(TreeNode rootTree, NodeModel addedNode)
+        public void AddNodeToTree(TreeNode rootTree, NodeModel modelToAdd)
         {
             if (rootTree != null)
             {
                 TreeNode targetTreeNode;
-                if (rootTree.Name == addedNode.Parent.Name)
+                if (rootTree.Name == modelToAdd.Parent.Name)
                 {
                     targetTreeNode = rootTree;
                 }
                 else
                 {
-                    targetTreeNode = EnsureTargetTreeNodeExists(rootTree, addedNode);
+                    targetTreeNode = EnsureTargetTreeNodeExists(rootTree, modelToAdd);
                 }
                 OnSafeAndDispatch(() =>
                 {
-                    var addedTreeNode = targetTreeNode.Nodes.Add(addedNode.Name, addedNode.Text, addedNode.ImageKey, addedNode.SelectedImageKey);
+                    var addedTreeNode = targetTreeNode.Nodes.Add(modelToAdd.Name, modelToAdd.Text, modelToAdd.ImageKey, modelToAdd.SelectedImageKey);
                 });
             }
         }
