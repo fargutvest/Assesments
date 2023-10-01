@@ -1,47 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Assesment
 {
     public partial class Form : System.Windows.Forms.Form
     {
         private Searcher searcher;
-
         private TreeNode rootOfTree;
-
         private TreeNode selectedTreeNode;
-
         private object syncRootTree = new object();
+        private TreeNodeAndModelSync treeNodeSync;
+        private string searchForCacheFilePath = "searchfor.cache";
+        private string searchInCacheFilePath = "searchin.cache";
+        private string countOfThreadsCacheFilePath = "countOfThreads.cache";
 
         public Form()
         {
             InitializeComponent();
-
-            treeView1.ImageList = new ImageList();
-            treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
-
-            searcher = new Searcher();
-            searcher.TreeCreated += Searcher_TreeCreated;
-            searcher.Message += Searcher_Message;
-            searcher.Progress += Searcher_Progress;
-            searcher.Finished += Searcher_Finished; ;
-            searcher.IconAdded += Searcher_IconAdded;
-            searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
-
-            countOfThreadsNud.Maximum = Environment.ProcessorCount;
-            var mnuContext = new ContextMenu();
-            mnuContext.MenuItems.Add("Copy", (sender, e) => 
-            {
-                Clipboard.SetText(statusLb.Text);
-            });
-
-            statusLb.ContextMenu = mnuContext;
         }
 
         private void Searcher_Finished(string message)
@@ -52,126 +31,35 @@ namespace Assesment
             }));
         }
 
-        private void Searcher_TreeCreated(NodeModel rootNode)
+        private void Searcher_TreeCreated(NodeModel rootModel)
         {
             lock (syncRootTree)
             {
+                rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
+
                 Invoke((Action)(() =>
-            {
-                rootOfTree = new TreeNode()
                 {
-                    Text = rootNode.Text,
-                    Name = rootNode.Name,
-                    SelectedImageKey = rootNode.SelectedImageKey,
-                    ImageKey = rootNode.ImageKey
-                };
-
-                void recurse(TreeNode treeNode, NodeModel node)
-                {
-                    var addedTreeNode = new TreeNode()
-                    {
-                        Text = node.Text,
-                        Name = node.Name,
-                        SelectedImageKey = node.SelectedImageKey,
-                        ImageKey = node.ImageKey
-                    };
-
-                    treeNode.Nodes.Add(addedTreeNode);
-
-                    foreach (var subNode in node.Nodes)
-                    {
-                        recurse(addedTreeNode, subNode);
-                    }
-                }
-
-                foreach (var subNode in rootNode.Nodes)
-                {
-                    recurse(rootOfTree, subNode);
-                }
-
-                treeView1.Nodes.Clear();
-                rootOfTree.ExpandAll();
-                treeView1.Nodes.Add(rootOfTree);
-            }));
+                    treeView1.Nodes.Clear();
+                    rootOfTree.ExpandAll();
+                    treeView1.Nodes.Add(rootOfTree);
+                }));
             }
         }
 
-        private void Searcher_AddedNodeToTree(NodeModel addedNode)
+        private void Searcher_AddedNodeToTree(NodeModel addedModel)
         {
             lock (syncRootTree)
             {
                 if (rootOfTree != null)
                 {
-                    TreeNode targetTreeNode;
-                    if (rootOfTree.Name == addedNode.Parent.Name)
-                    {
-                        targetTreeNode = rootOfTree;
-                    }
-                    else
-                    {
-                        targetTreeNode = EnsureTargetTreeNode(addedNode);
-                    }
+                    treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
 
                     Invoke((Action)(() =>
                     {
-                        targetTreeNode.ExpandAll();
-                        var addedTreeNode = targetTreeNode.Nodes.Add(addedNode.Name, addedNode.Text, addedNode.ImageKey, addedNode.SelectedImageKey);
-                        targetTreeNode.ExpandAll();
-                        addedTreeNode.ExpandAll();
+                        rootOfTree.ExpandAll();
                     }));
                 }
             }
-        }
-
-        private TreeNode EnsureTargetTreeNode(NodeModel addedNode)
-        {
-            TreeNode targetNode;
-            if (rootOfTree.Name == addedNode.Parent.Name)
-            {
-                targetNode = rootOfTree;
-            }
-
-            targetNode = rootOfTree.Nodes.Find(addedNode.Parent.Name, searchAllChildren: true).FirstOrDefault();
-
-            if (targetNode == null)
-            {
-                List<NodeModel> parentsUntilRoot = new List<NodeModel>();
-
-                var parent = addedNode.Parent;
-                while (parent != null)
-                {
-                    parentsUntilRoot.Add(parent);
-                    parent = parent.Parent;
-                }
-
-                int indexOfFoundParent = 0;
-
-                while (targetNode == null)
-                {
-                    if (rootOfTree.Name == parentsUntilRoot[indexOfFoundParent].Name)
-                    {
-                        targetNode = rootOfTree;
-
-                    }
-                    else
-                    {
-                        targetNode = rootOfTree.Nodes.Find(parentsUntilRoot[indexOfFoundParent].Name, searchAllChildren: true).FirstOrDefault();
-                        indexOfFoundParent++;
-                    }
-                }
-                indexOfFoundParent--;
-                Invoke((Action)(() =>
-                {
-                    for (var i = indexOfFoundParent - 1; i >= 0; i--)
-                    {
-                        targetNode = targetNode.Nodes.Add(parentsUntilRoot[i].Name, parentsUntilRoot[i].Text, parentsUntilRoot[i].ImageKey, parentsUntilRoot[i].SelectedImageKey);
-                    }
-
-                    targetNode = targetNode.Nodes.Add(addedNode.Parent.Name, addedNode.Parent.Text, addedNode.Parent.ImageKey, addedNode.Parent.SelectedImageKey);
-                }));
-            }
-
-            return targetNode;
         }
 
         private void Searcher_IconAdded(string key, Bitmap icon)
@@ -223,10 +111,7 @@ namespace Assesment
             searcher.Start(searchFor, searchIn, threads);
         }
 
-        private string searchForCacheFilePath = "searchfor.cache";
-        private string searchInCacheFilePath = "searchin.cache";
-        private string countOfThreadsCacheFilePath = "countOfThreads.cache";
-
+     
         private void LoadUserInputCache()
         {
             if (File.Exists(searchForCacheFilePath))
@@ -287,6 +172,27 @@ namespace Assesment
         private void Form_Load(object sender, EventArgs e)
         {
             LoadUserInputCache();
+
+            treeNodeSync = new TreeNodeAndModelSync(this);
+            treeView1.ImageList = new ImageList();
+            treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
+
+            searcher = new Searcher();
+            searcher.TreeCreated += Searcher_TreeCreated;
+            searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
+            searcher.Message += Searcher_Message;
+            searcher.Progress += Searcher_Progress;
+            searcher.Finished += Searcher_Finished; ;
+            searcher.IconAdded += Searcher_IconAdded;
+
+            countOfThreadsNud.Maximum = Environment.ProcessorCount;
+            var contextMenu = new ContextMenu();
+            contextMenu.MenuItems.Add("Copy", (_, __) =>
+            {
+                Clipboard.SetText(statusLb.Text);
+            });
+
+            statusLb.ContextMenu = contextMenu;
         }
     }
 }

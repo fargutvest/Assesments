@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Assesment
 {
@@ -14,7 +15,7 @@ namespace Assesment
         private ConcurrentBag<string> touchedDirs = new ConcurrentBag<string>();
         private ConcurrentDictionary<string, Bitmap> iconsCache = new ConcurrentDictionary<string, Bitmap>();
         private bool cancel = true;
-        private string fodlerIconKey = "folder";
+        private string folderIconKey = "folder";
         private Bitmap folderIcon = (Bitmap)Image.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
         private NodeModel rootOfTree;
         private object syncRootOfTree = new object();
@@ -80,7 +81,7 @@ namespace Assesment
 
         private void Flush()
         {
-            TryRegisterIcon(fodlerIconKey, folderIcon);
+            TryRegisterIcon(folderIconKey, folderIcon);
             touchedDirs = new ConcurrentBag<string>();
             rootOfTree = null;
         }
@@ -131,7 +132,6 @@ namespace Assesment
                             {
                                 parentsUntilRoot = GetParentsUntilRoot(dirOfFoundFileItem);
                             }
-
                             lock (syncRootOfTree)
                             {
                                 if (rootOfTree == null)
@@ -160,10 +160,10 @@ namespace Assesment
 
                                 for (var i = indexOfFoundParent - 1; i >= 0; i--)
                                 {
-                                    targetNode = AddNodeToTree(targetNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, fodlerIconKey);
+                                    targetNode = AddNodeToTree(targetNode, parentsUntilRoot[i].FullName, parentsUntilRoot[i].Name, folderIconKey);
                                 }
 
-                                targetNode = AddNodeToTree(targetNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, fodlerIconKey);
+                                targetNode = AddNodeToTree(targetNode, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, folderIconKey);
                             }
 
                             // different exe files may have different icons
@@ -200,8 +200,8 @@ namespace Assesment
             {
                 Name = rootDir.FullName, 
                 Text = rootDir.Name, 
-                ImageKey = fodlerIconKey, 
-                SelectedImageKey = fodlerIconKey 
+                ImageKey = folderIconKey, 
+                SelectedImageKey = folderIconKey 
             };
 
             NodeModel currentNode = rootOfTree;
@@ -212,7 +212,7 @@ namespace Assesment
                     return;
                 }
 
-                currentNode = AddNodeToTree(currentNode, dirsUntilRoot[i].FullName, dirsUntilRoot[i].Name, fodlerIconKey);
+                currentNode = AddNodeToTree(currentNode, dirsUntilRoot[i].FullName, dirsUntilRoot[i].Name, folderIconKey);
             }
 
             TreeCreated?.Invoke(rootOfTree);
