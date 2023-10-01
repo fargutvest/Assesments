@@ -120,7 +120,7 @@ namespace Assesment
         {
             try
             {
-                var allExistedFilesQuery = Directory.EnumerateFiles(searchIn);
+                var allExistedFilesQuery = Directory.EnumerateFiles(searchIn).AsParallel();
                 Parallel.ForEach(allExistedFilesQuery, new ParallelOptions() { MaxDegreeOfParallelism = threads },
                 file =>
                 {
@@ -135,7 +135,7 @@ namespace Assesment
                         touchedDirs.Add(dirToTouch);
                         Progress?.Invoke(dirToTouch);
 
-                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern);
+                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern).AsParallel();
                         var cacheOfParents = new ConcurrentDictionary<string, List<DirectoryInfo>>();
 
                         Parallel.ForEach(foundFilesByPattern, new ParallelOptions() { MaxDegreeOfParallelism = threads },
@@ -232,7 +232,7 @@ namespace Assesment
             };
 
             NodeModel currentNode = rootOfTree;
-            for (int i = dirsUntilRoot.Count - 1; i > 0; i--)
+            for (int i = dirsUntilRoot.Count - 2; i > 0; i--)
             {
                 if (cancel == true)
                 {

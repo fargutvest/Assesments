@@ -184,7 +184,10 @@ namespace Assesment
                 }
                 else
                 {
-                    Process.Start(Path.GetDirectoryName(selectedTreeNode.Name));
+                    if (new DirectoryInfo(selectedTreeNode.Name).Root.FullName == selectedTreeNode.Name == false)
+                    {
+                        Process.Start(Path.GetDirectoryName(selectedTreeNode.Name));
+                    }
                 }
             }
         }
