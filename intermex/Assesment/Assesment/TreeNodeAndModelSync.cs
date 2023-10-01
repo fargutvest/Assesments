@@ -25,7 +25,7 @@ namespace Assesment
                 SelectedImageKey = rootModel.SelectedImageKey
             };
 
-            void recurse(TreeNode treeNode, NodeModel model)
+            void recursion(TreeNode treeNode, NodeModel model)
             {
                 var addedTreeNode = new TreeNode()
                 {
@@ -39,13 +39,13 @@ namespace Assesment
 
                 foreach (var subNode in model.Nodes)
                 {
-                    recurse(addedTreeNode, subNode);
+                    recursion(addedTreeNode, subNode);
                 }
             }
 
             foreach (var subNode in rootModel.Nodes)
             {
-                recurse(rootTree, subNode);
+                recursion(rootTree, subNode);
             }
 
             return rootTree;

@@ -23,6 +23,30 @@ namespace Assesment
         {
             InitializeComponent();
         }
+        private void Form_Load(object sender, EventArgs e)
+        {
+            LoadUserInputCache();
+
+            treeNodeSync = new TreeNodeAndModelSync(this);
+            treeView1.ImageList = new ImageList();
+            treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
+
+            searcher = new Searcher();
+            searcher.TreeCreated += Searcher_TreeCreated;
+            searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
+            searcher.Message += Searcher_Message;
+            searcher.Progress += Searcher_Progress;
+            searcher.Finished += Searcher_Finished;
+            searcher.IconAdded += Searcher_IconAdded;
+
+            countOfThreadsNud.Maximum = Environment.ProcessorCount;
+            var contextMenu = new ContextMenu();
+            contextMenu.MenuItems.Add("Copy", (_, __) =>
+            {
+                Clipboard.SetText(statusLb.Text);
+            });
+            statusLb.ContextMenu = contextMenu;
+        }
 
         private void Searcher_Finished(string message)
         {
@@ -42,7 +66,7 @@ namespace Assesment
         {
             lock (syncRootTree)
             {
-               
+
                 rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
                 OnSafeAndDispatch(() =>
                 {
@@ -59,16 +83,20 @@ namespace Assesment
         {
             lock (syncRootTree)
             {
-                OnSafeAndDispatch(() =>
+                if (rootOfTree != null)
                 {
-                    var scrollPos = treeView1.GetScrollPos();
-                    if (rootOfTree != null)
+                    Point scrollPos = new Point(0, 0);
+                    OnSafeAndDispatch(() =>
                     {
-                        treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
+                        scrollPos = treeView1.GetScrollPos();
+                    });
+                    treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
+                    OnSafeAndDispatch(() =>
+                    {
                         rootOfTree.ExpandAll();
-                    }
-                    treeView1.SetScrollPos(scrollPos);
-                });
+                        treeView1.SetScrollPos(scrollPos);
+                    });
+                }
             }
         }
 
@@ -133,7 +161,7 @@ namespace Assesment
             searcher.Start(searchFor, searchIn, threads);
         }
 
-     
+
         private void LoadUserInputCache()
         {
             if (File.Exists(searchForCacheFilePath))
@@ -184,32 +212,6 @@ namespace Assesment
                     }
                 }
             }
-        }
-
-        private void Form_Load(object sender, EventArgs e)
-        {
-            LoadUserInputCache();
-
-            treeNodeSync = new TreeNodeAndModelSync(this);
-            treeView1.ImageList = new ImageList();
-            treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
-
-            searcher = new Searcher();
-            searcher.TreeCreated += Searcher_TreeCreated;
-            searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
-            searcher.Message += Searcher_Message;
-            searcher.Progress += Searcher_Progress;
-            searcher.Finished += Searcher_Finished;
-            searcher.IconAdded += Searcher_IconAdded;
-
-            countOfThreadsNud.Maximum = Environment.ProcessorCount;
-            var contextMenu = new ContextMenu();
-            contextMenu.MenuItems.Add("Copy", (_, __) =>
-            {
-                Clipboard.SetText(statusLb.Text);
-            });
-
-            statusLb.ContextMenu = contextMenu;
         }
 
         private void OnSafeAndDispatch(Action toDo)

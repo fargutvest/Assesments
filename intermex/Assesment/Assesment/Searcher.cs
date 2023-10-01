@@ -6,7 +6,6 @@ using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Assesment
 {
@@ -83,7 +82,7 @@ namespace Assesment
                 string searchStatus = cancel ? "search canceled" : "search completed";
 
                 Dictionary<string, NodeModel> directories = new Dictionary<string, NodeModel>();
-                void recurse(NodeModel node)
+                void recursion(NodeModel node)
                 {
                     foreach (var subNode in node.Nodes)
                     {
@@ -96,13 +95,13 @@ namespace Assesment
                             }
                         }
 
-                        recurse(subNode);
+                        recursion(subNode);
                     }
                 }
 
                 if (rootOfTree!= null)
                 {
-                    recurse(rootOfTree);
+                    recursion(rootOfTree);
                 }
                 
                 Finished?.Invoke($"[{countOfFiles} files and {directories.Count} directories found] - {searchStatus}");
@@ -126,7 +125,7 @@ namespace Assesment
         {
             try
             {
-                var allExistedFilesQuery = Directory.EnumerateFiles(searchIn).AsParallel();
+                var allExistedFilesQuery = Directory.EnumerateFiles(searchIn);
                 Parallel.ForEach(allExistedFilesQuery, new ParallelOptions() { MaxDegreeOfParallelism = threads },
                 file =>
                 {
@@ -141,7 +140,7 @@ namespace Assesment
                         touchedDirs.Add(dirToTouch);
                         Progress?.Invoke(dirToTouch);
 
-                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern).AsParallel();
+                        var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern);
                         var cacheOfParents = new ConcurrentDictionary<string, List<DirectoryInfo>>();
 
                         Parallel.ForEach(foundFilesByPattern, new ParallelOptions() { MaxDegreeOfParallelism = threads },
@@ -276,7 +275,7 @@ namespace Assesment
 
         private NodeModel FindNodeInTreeByKey(string key)
         {
-            NodeModel recurse(NodeModel node)
+            NodeModel recursion(NodeModel node)
             {
                 if (node.Name == key)
                 {
@@ -286,7 +285,7 @@ namespace Assesment
                 {
                     foreach (var nodeItem in node.Nodes)
                     {
-                        NodeModel foundNode = recurse(nodeItem);
+                        NodeModel foundNode = recursion(nodeItem);
                         if (foundNode != null)
                         {
                             return foundNode;
@@ -296,7 +295,7 @@ namespace Assesment
                 return null;
             }
 
-            return recurse(rootOfTree);
+            return recursion(rootOfTree);
         }
 
         private List<DirectoryInfo> GetParentsUntilRoot(DirectoryInfo directoryInfo)
