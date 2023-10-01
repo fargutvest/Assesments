@@ -36,6 +36,22 @@ namespace Assesment
 
             cancel = false;
 
+            foreach (var invalidChar in Path.GetInvalidFileNameChars().Except(new [] {'*'}))
+            {
+                if (searchFor.Contains(invalidChar))
+                {
+                    Message?.Invoke($"Search pattern contains invalid symol '{invalidChar}'!");
+                    cancel = true;
+                    return;
+                }
+            }
+
+            if (string.IsNullOrEmpty(searchIn))
+            {
+                Message?.Invoke($"Search path can`t be empty!");
+                cancel = true;
+                return;
+            }
             if (Directory.Exists(searchIn) == false)
             {
                 Message?.Invoke($"Search path not found! {Environment.NewLine}{Environment.NewLine} {searchIn}");

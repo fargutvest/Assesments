@@ -28,7 +28,7 @@ namespace Assesment
             OnSafeAndDispatch(() =>
             {
                 summaryLb.Text = message;
-               
+                statusLb.Text = message;
             });
         }
 
@@ -188,7 +188,7 @@ namespace Assesment
             searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
             searcher.Message += Searcher_Message;
             searcher.Progress += Searcher_Progress;
-            searcher.Finished += Searcher_Finished; ;
+            searcher.Finished += Searcher_Finished;
             searcher.IconAdded += Searcher_IconAdded;
 
             countOfThreadsNud.Maximum = Environment.ProcessorCount;
