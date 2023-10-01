@@ -15,14 +15,15 @@ namespace Assesment
         private ConcurrentDictionary<string, Bitmap> iconsCache = new ConcurrentDictionary<string, Bitmap>();
         private bool cancel = true;
         private string fodlerIconKey = "folder";
-        private Bitmap folderIcon = (Bitmap)Bitmap.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
-        private NodeModel treeRoot;
-        private object syncTreeRoot = new object();
+        private Bitmap folderIcon = (Bitmap)Image.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
+        private NodeModel rootOfTree;
+        private object syncRootOfTree = new object();
 
-        public event Action<NodeModel> TreeRootInited;
+        public event Action<NodeModel> TreeCreated;
         public event Action<NodeModel> AddedNodeToTree;
         public event Action<string, Bitmap> IconAdded;
         public event Action<string> Progress;
+        public event Action<string> Finished;
         public event Action<string> Message;
 
 
@@ -49,7 +50,30 @@ namespace Assesment
                 SearchRecursively(searchIn, searchFor, countOfThreads);
             }).ContinueWith(t =>
             {
-                Progress?.Invoke(cancel ? "Canceled" : "Complete!");
+                int countOfFiles = 0;
+                string searchStatus = cancel ? "search canceled" : "search completed";
+
+                Dictionary<string, NodeModel> directories = new Dictionary<string, NodeModel>();
+                void recurse(NodeModel node)
+                {
+                    foreach (var subNode in node.Nodes)
+                    {
+                        if (subNode.IsFile)
+                        {
+                            countOfFiles ++;
+                            if (directories.ContainsKey(subNode.Parent.Name) == false)
+                            {
+                                directories.Add(subNode.Parent.Name, subNode);
+                            }
+                        }
+
+                        recurse(subNode);
+                    }
+                }
+
+                recurse(rootOfTree);
+
+                Finished?.Invoke($"[{countOfFiles} files and {directories.Count} directories found] - {searchStatus}");
                 cancel = true;
             });
         }
@@ -58,7 +82,7 @@ namespace Assesment
         {
             TryRegisterIcon(fodlerIconKey, folderIcon);
             touchedDirs = new ConcurrentBag<string>();
-            treeRoot = null;
+            rootOfTree = null;
         }
 
         public void Cancel()
@@ -108,16 +132,16 @@ namespace Assesment
                                 parentsUntilRoot = GetParentsUntilRoot(dirOfFoundFileItem);
                             }
 
-                            lock (syncTreeRoot)
+                            lock (syncRootOfTree)
                             {
-                                if (treeRoot == null)
+                                if (rootOfTree == null)
                                 {
                                     var dirsUntilRoot = new List<DirectoryInfo>
                                     {
                                         dirOfFoundFileItem
                                     };
                                     dirsUntilRoot.AddRange(parentsUntilRoot);
-                                    InitTreeOfNodes(dirsUntilRoot);
+                                    CreateTreeOfNodes(dirsUntilRoot);
                                 }
                             }
 
@@ -147,19 +171,20 @@ namespace Assesment
                             var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
                             TryRegisterIcon(fileIconKey, fileIcon);
 
-                            AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey);
+                            AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
                         }
                     }
                 });
 
-                foreach (var item in Directory.GetDirectories(searchIn))
+                Parallel.ForEach(Directory.GetDirectories(searchIn), new ParallelOptions() { MaxDegreeOfParallelism = threads },
+                item =>
                 {
                     if (cancel == true)
                     {
                         return;
                     }
                     SearchRecursively(item, searchPattern, threads);
-                }
+                });
             }
             catch (Exception ex)
             {
@@ -167,11 +192,11 @@ namespace Assesment
             }
         }
 
-        private void InitTreeOfNodes(List<DirectoryInfo> dirsUntilRoot)
+        private void CreateTreeOfNodes(List<DirectoryInfo> dirsUntilRoot)
         {
             var rootDir = dirsUntilRoot.Last();
 
-            treeRoot = new NodeModel() 
+            rootOfTree = new NodeModel() 
             {
                 Name = rootDir.FullName, 
                 Text = rootDir.Name, 
@@ -179,7 +204,7 @@ namespace Assesment
                 SelectedImageKey = fodlerIconKey 
             };
 
-            NodeModel currentNode = treeRoot;
+            NodeModel currentNode = rootOfTree;
             for (int i = dirsUntilRoot.Count - 1; i > 0; i--)
             {
                 if (cancel == true)
@@ -190,17 +215,18 @@ namespace Assesment
                 currentNode = AddNodeToTree(currentNode, dirsUntilRoot[i].FullName, dirsUntilRoot[i].Name, fodlerIconKey);
             }
 
-            TreeRootInited?.Invoke(treeRoot);
+            TreeCreated?.Invoke(rootOfTree);
         }
 
-        private NodeModel AddNodeToTree(NodeModel target, string name, string text, string iconKey)
+        private NodeModel AddNodeToTree(NodeModel target, string name, string text, string iconKey, bool isFile = false)
         {
             var newNode = new NodeModel() 
             {
                 Text = text, 
                 Name = name, 
                 ImageKey = iconKey, 
-                SelectedImageKey = iconKey 
+                SelectedImageKey = iconKey,
+                IsFile = isFile
             };
 
             target.Nodes.Add(newNode);
@@ -240,7 +266,7 @@ namespace Assesment
                 return null;
             }
 
-            return recurse(treeRoot);
+            return recurse(rootOfTree);
         }
 
         private List<DirectoryInfo> GetParentsUntilRoot(DirectoryInfo directoryInfo)

@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Assesment
 {
@@ -9,7 +13,11 @@ namespace Assesment
     {
         private Searcher searcher;
 
-        private TreeNode rootTreeNode;
+        private TreeNode rootOfTree;
+
+        private TreeNode selectedTreeNode;
+
+        private object syncRootTree = new object();
 
         public Form()
         {
@@ -19,18 +27,38 @@ namespace Assesment
             treeView1.ImageList.ColorDepth = ColorDepth.Depth32Bit;
 
             searcher = new Searcher();
-            searcher.TreeRootInited += Searcher_TreeRootInited;
+            searcher.TreeCreated += Searcher_TreeCreated;
             searcher.Message += Searcher_Message;
             searcher.Progress += Searcher_Progress;
+            searcher.Finished += Searcher_Finished; ;
             searcher.IconAdded += Searcher_IconAdded;
             searcher.AddedNodeToTree += Searcher_AddedNodeToTree;
+
+            countOfThreadsNud.Maximum = Environment.ProcessorCount;
+            var mnuContext = new ContextMenu();
+            mnuContext.MenuItems.Add("Copy", (sender, e) => 
+            {
+                Clipboard.SetText(statusLb.Text);
+            });
+
+            statusLb.ContextMenu = mnuContext;
         }
 
-        private void Searcher_TreeRootInited(NodeModel rootNode)
+        private void Searcher_Finished(string message)
         {
             Invoke((Action)(() =>
             {
-                rootTreeNode = new TreeNode()
+                summaryLb.Text = message;
+            }));
+        }
+
+        private void Searcher_TreeCreated(NodeModel rootNode)
+        {
+            lock (syncRootTree)
+            {
+                Invoke((Action)(() =>
+            {
+                rootOfTree = new TreeNode()
                 {
                     Text = rootNode.Text,
                     Name = rootNode.Name,
@@ -58,37 +86,92 @@ namespace Assesment
 
                 foreach (var subNode in rootNode.Nodes)
                 {
-                    recurse(rootTreeNode, subNode);
+                    recurse(rootOfTree, subNode);
                 }
 
                 treeView1.Nodes.Clear();
-                rootTreeNode.ExpandAll();
-                treeView1.Nodes.Add(rootTreeNode);
+                rootOfTree.ExpandAll();
+                treeView1.Nodes.Add(rootOfTree);
             }));
+            }
         }
 
         private void Searcher_AddedNodeToTree(NodeModel addedNode)
         {
-            Invoke((Action)(() =>
+            lock (syncRootTree)
             {
-                if (rootTreeNode != null)
+                if (rootOfTree != null)
                 {
                     TreeNode targetTreeNode;
-                    if (rootTreeNode.Name == addedNode.Parent.Name)
+                    if (rootOfTree.Name == addedNode.Parent.Name)
                     {
-                        targetTreeNode = rootTreeNode;
+                        targetTreeNode = rootOfTree;
                     }
                     else
                     {
-                        targetTreeNode = rootTreeNode.Nodes.Find(addedNode.Parent.Name, searchAllChildren: true).First();
+                        targetTreeNode = EnsureTargetTreeNode(addedNode);
                     }
 
-                    targetTreeNode.ExpandAll();
-                    var addedTreeNode = targetTreeNode.Nodes.Add(addedNode.Name, addedNode.Text, addedNode.ImageKey, addedNode.SelectedImageKey);
-                    targetTreeNode.ExpandAll();
-                    addedTreeNode.ExpandAll();
+                    Invoke((Action)(() =>
+                    {
+                        targetTreeNode.ExpandAll();
+                        var addedTreeNode = targetTreeNode.Nodes.Add(addedNode.Name, addedNode.Text, addedNode.ImageKey, addedNode.SelectedImageKey);
+                        targetTreeNode.ExpandAll();
+                        addedTreeNode.ExpandAll();
+                    }));
                 }
-            }));
+            }
+        }
+
+        private TreeNode EnsureTargetTreeNode(NodeModel addedNode)
+        {
+            TreeNode targetNode;
+            if (rootOfTree.Name == addedNode.Parent.Name)
+            {
+                targetNode = rootOfTree;
+            }
+
+            targetNode = rootOfTree.Nodes.Find(addedNode.Parent.Name, searchAllChildren: true).FirstOrDefault();
+
+            if (targetNode == null)
+            {
+                List<NodeModel> parentsUntilRoot = new List<NodeModel>();
+
+                var parent = addedNode.Parent;
+                while (parent != null)
+                {
+                    parentsUntilRoot.Add(parent);
+                    parent = parent.Parent;
+                }
+
+                int indexOfFoundParent = 0;
+
+                while (targetNode == null)
+                {
+                    if (rootOfTree.Name == parentsUntilRoot[indexOfFoundParent].Name)
+                    {
+                        targetNode = rootOfTree;
+
+                    }
+                    else
+                    {
+                        targetNode = rootOfTree.Nodes.Find(parentsUntilRoot[indexOfFoundParent].Name, searchAllChildren: true).FirstOrDefault();
+                        indexOfFoundParent++;
+                    }
+                }
+                indexOfFoundParent--;
+                Invoke((Action)(() =>
+                {
+                    for (var i = indexOfFoundParent - 1; i >= 0; i--)
+                    {
+                        targetNode = targetNode.Nodes.Add(parentsUntilRoot[i].Name, parentsUntilRoot[i].Text, parentsUntilRoot[i].ImageKey, parentsUntilRoot[i].SelectedImageKey);
+                    }
+
+                    targetNode = targetNode.Nodes.Add(addedNode.Parent.Name, addedNode.Parent.Text, addedNode.Parent.ImageKey, addedNode.Parent.SelectedImageKey);
+                }));
+            }
+
+            return targetNode;
         }
 
         private void Searcher_IconAdded(string key, Bitmap icon)
@@ -103,7 +186,7 @@ namespace Assesment
         {
             Invoke((Action)(() =>
             {
-                status.Text = message;
+                statusLb.Text = message;
             }));
         }
 
@@ -114,18 +197,96 @@ namespace Assesment
 
         private void startBtn_Click(object sender, EventArgs e)
         {
-            var searchFor = this.searchFor.Text;
+            var searchFor = this.searchForCb.Text;
             searchFor = string.IsNullOrEmpty(searchFor) ? "*.*" : searchFor;
-            var searchIn = this.searchIn.Text;
-            var threads = (int)countOfThreads.Value;
+            var searchIn = this.searchInCb.Text;
+            var threads = (int)countOfThreadsNud.Value;
+            selectedTreeNode = null;
+            goToFileBtn.Enabled = false;
 
             treeView1.Nodes.Clear();
+            rootOfTree = null;
+
+            if (searchInCb.Items.Contains(searchIn) == false)
+            {
+                searchInCb.Items.Insert(0, searchIn);
+                File.WriteAllLines(searchInCacheFilePath, searchInCb.Items.Cast<string>());
+            }
+            if (searchForCb.Items.Contains(searchFor) == false)
+            {
+                searchForCb.Items.Insert(0, searchFor);
+                File.WriteAllLines(searchForCacheFilePath, searchForCb.Items.Cast<string>());
+            }
+
+            File.WriteAllText(countOfThreadsCacheFilePath, threads.ToString());
+
             searcher.Start(searchFor, searchIn, threads);
+        }
+
+        private string searchForCacheFilePath = "searchfor.cache";
+        private string searchInCacheFilePath = "searchin.cache";
+        private string countOfThreadsCacheFilePath = "countOfThreads.cache";
+
+        private void LoadUserInputCache()
+        {
+            if (File.Exists(searchForCacheFilePath))
+            {
+                searchForCb.Items.Clear();
+                searchForCb.Items.AddRange(File.ReadAllLines(searchForCacheFilePath));
+                if (searchForCb.Items.Count > 0)
+                {
+                    searchForCb.SelectedIndex = 0;
+                }
+            }
+
+            if (File.Exists(searchInCacheFilePath))
+            {
+                searchInCb.Items.Clear();
+                searchInCb.Items.AddRange(File.ReadAllLines(searchInCacheFilePath));
+                if (searchInCb.Items.Count > 0)
+                {
+                    searchInCb.SelectedIndex = 0;
+                }
+            }
+
+            if (File.Exists(countOfThreadsCacheFilePath))
+            {
+                int.TryParse(File.ReadAllText(countOfThreadsCacheFilePath), out var countOfThreads);
+                countOfThreadsNud.Value = countOfThreads > countOfThreadsNud.Maximum ? countOfThreadsNud.Maximum : countOfThreads;
+            }
         }
 
         private void cancelBtn_Click(object sender, EventArgs e)
         {
             searcher.Cancel();
+        }
+
+        private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            selectedTreeNode = e.Node;
+            goToFileBtn.Enabled = true;
+            statusLb.Text = selectedTreeNode.Name;
+        }
+
+        private void goToFileBtn_Click(object sender, EventArgs e)
+        {
+            if (selectedTreeNode != null)
+            {
+                if (File.Exists(selectedTreeNode.Name))
+                {
+                    string argument = "/select, \"" + selectedTreeNode.Name + "\"";
+                    Process.Start("explorer.exe", argument);
+                }
+                else
+                {
+                    Process.Start(Path.GetDirectoryName(selectedTreeNode.Name));
+                }
+            }
+        }
+
+        private void Form_Load(object sender, EventArgs e)
+        {
+            LoadUserInputCache();
         }
     }
 }
