@@ -6,7 +6,6 @@ using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Assesment
 {
@@ -72,8 +71,11 @@ namespace Assesment
                     }
                 }
 
-                recurse(rootOfTree);
-
+                if (rootOfTree!= null)
+                {
+                    recurse(rootOfTree);
+                }
+                
                 Finished?.Invoke($"[{countOfFiles} files and {directories.Count} directories found] - {searchStatus}");
                 cancel = true;
             });
@@ -90,7 +92,6 @@ namespace Assesment
         {
             cancel = true;
         }
-
 
         private void SearchRecursively(string searchIn, string searchPattern, int threads)
         {
@@ -142,6 +143,7 @@ namespace Assesment
                                     };
                                     dirsUntilRoot.AddRange(parentsUntilRoot);
                                     CreateTreeOfNodes(dirsUntilRoot);
+                                    TreeCreated?.Invoke(rootOfTree);
                                 }
                             }
 
@@ -171,7 +173,8 @@ namespace Assesment
                             var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
                             TryRegisterIcon(fileIconKey, fileIcon);
 
-                            AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
+                            var newNode = AddNodeToTree(targetNode, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
+                            AddedNodeToTree?.Invoke(newNode);
                         }
                     }
                 });
@@ -214,8 +217,6 @@ namespace Assesment
 
                 currentNode = AddNodeToTree(currentNode, dirsUntilRoot[i].FullName, dirsUntilRoot[i].Name, folderIconKey);
             }
-
-            TreeCreated?.Invoke(rootOfTree);
         }
 
         private NodeModel AddNodeToTree(NodeModel target, string name, string text, string iconKey, bool isFile = false)
@@ -231,7 +232,6 @@ namespace Assesment
 
             target.Nodes.Add(newNode);
             newNode.Parent = target;
-            AddedNodeToTree?.Invoke(newNode);
             return newNode;
         }
 

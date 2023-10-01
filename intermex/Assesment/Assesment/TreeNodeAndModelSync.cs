@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -87,7 +88,8 @@ namespace Assesment
                     }
                 }
                 indexOfFoundParent--;
-                dispatcher.Invoke((Action)(() =>
+
+                OnSafeAndDispatch(() =>
                 {
                     for (var i = indexOfFoundParent - 1; i >= 0; i--)
                     {
@@ -96,7 +98,7 @@ namespace Assesment
                     }
 
                     targetNode = targetNode.Nodes.Add(addedModel.Parent.Name, addedModel.Parent.Text, addedModel.Parent.ImageKey, addedModel.Parent.SelectedImageKey);
-                }));
+                });
             }
 
             return targetNode;
@@ -115,11 +117,22 @@ namespace Assesment
                 {
                     targetTreeNode = EnsureTargetTreeNodeExists(rootTree, addedNode);
                 }
-
-                dispatcher.Invoke((Action)(() =>
+                OnSafeAndDispatch(() =>
                 {
                     var addedTreeNode = targetTreeNode.Nodes.Add(addedNode.Name, addedNode.Text, addedNode.ImageKey, addedNode.SelectedImageKey);
-                }));
+                });
+            }
+        }
+
+        private void OnSafeAndDispatch(Action toDo)
+        {
+            try
+            {
+                dispatcher.Invoke(toDo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
             }
         }
     }

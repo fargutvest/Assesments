@@ -25,10 +25,11 @@ namespace Assesment
 
         private void Searcher_Finished(string message)
         {
-            Invoke((Action)(() =>
+            OnSafeAndDispatch(() =>
             {
                 summaryLb.Text = message;
-            }));
+               
+            });
         }
 
         private void Searcher_TreeCreated(NodeModel rootModel)
@@ -37,12 +38,12 @@ namespace Assesment
             {
                 rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
 
-                Invoke((Action)(() =>
+                OnSafeAndDispatch(() =>
                 {
                     treeView1.Nodes.Clear();
                     rootOfTree.ExpandAll();
                     treeView1.Nodes.Add(rootOfTree);
-                }));
+                });
             }
         }
 
@@ -54,28 +55,28 @@ namespace Assesment
                 {
                     treeNodeSync.AddNodeToTree(rootOfTree, addedModel);
 
-                    Invoke((Action)(() =>
+                    OnSafeAndDispatch(() =>
                     {
                         rootOfTree.ExpandAll();
-                    }));
+                    });
                 }
             }
         }
 
         private void Searcher_IconAdded(string key, Bitmap icon)
         {
-            Invoke((Action)(() =>
+            OnSafeAndDispatch(() =>
             {
                 treeView1.ImageList.Images.Add(key, icon);
-            }));
+            });
         }
 
         private void Searcher_Progress(string message)
         {
-            Invoke((Action)(() =>
+            OnSafeAndDispatch(() =>
             {
                 statusLb.Text = message;
-            }));
+            });
         }
 
         private void Searcher_Message(string message)
@@ -95,16 +96,21 @@ namespace Assesment
             treeView1.Nodes.Clear();
             rootOfTree = null;
 
-            if (searchInCb.Items.Contains(searchIn) == false)
+            if (searchInCb.Items.Contains(searchIn))
             {
-                searchInCb.Items.Insert(0, searchIn);
-                File.WriteAllLines(searchInCacheFilePath, searchInCb.Items.Cast<string>());
+                searchInCb.Items.Remove(searchIn);
             }
-            if (searchForCb.Items.Contains(searchFor) == false)
+            searchInCb.Items.Insert(0, searchIn);
+            searchInCb.SelectedIndex = 0;
+            File.WriteAllLines(searchInCacheFilePath, searchInCb.Items.Cast<string>());
+
+            if (searchForCb.Items.Contains(searchFor))
             {
-                searchForCb.Items.Insert(0, searchFor);
-                File.WriteAllLines(searchForCacheFilePath, searchForCb.Items.Cast<string>());
+                searchForCb.Items.Remove(searchFor);
             }
+            searchForCb.Items.Insert(0, searchFor);
+            searchForCb.SelectedIndex = 0;
+            File.WriteAllLines(searchForCacheFilePath, searchForCb.Items.Cast<string>());
 
             File.WriteAllText(countOfThreadsCacheFilePath, threads.ToString());
 
@@ -193,6 +199,18 @@ namespace Assesment
             });
 
             statusLb.ContextMenu = contextMenu;
+        }
+
+        private void OnSafeAndDispatch(Action toDo)
+        {
+            try
+            {
+                Invoke(toDo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
         }
     }
 }
