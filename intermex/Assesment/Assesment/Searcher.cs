@@ -66,6 +66,12 @@ namespace Assesment
                 return;
             }
 
+            searchFor = string.IsNullOrEmpty(searchFor) ? "*.*" : searchFor;
+            if (searchFor.Contains("*") == false)
+            {
+                searchFor = $"*{searchFor}*";
+            }
+
             Flush();
 
             Task.Run(() =>

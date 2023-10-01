@@ -103,7 +103,6 @@ namespace Assesment
             isStarted = true;
 
             var searchFor = this.searchForCb.Text;
-            searchFor = string.IsNullOrEmpty(searchFor) ? "*.*" : searchFor;
             var searchIn = this.searchInCb.Text;
             var threads = (int)countOfThreadsNud.Value;
             selectedTreeNode = null;
