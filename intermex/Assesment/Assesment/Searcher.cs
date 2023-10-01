@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Assesment
 {
@@ -40,22 +41,28 @@ namespace Assesment
             {
                 if (searchFor.Contains(invalidChar))
                 {
-                    Message?.Invoke($"Search pattern contains invalid symol '{invalidChar}'!");
+                    var message = $"Search pattern contains invalid symol '{invalidChar}'!";
+                    Message?.Invoke(message);
                     cancel = true;
+                    Finished?.Invoke(message);
                     return;
                 }
             }
 
             if (string.IsNullOrEmpty(searchIn))
             {
-                Message?.Invoke($"Search path can`t be empty!");
+                var message = "Search path can`t be empty!";
+                Message?.Invoke(message);
                 cancel = true;
+                Finished?.Invoke(message);
                 return;
             }
             if (Directory.Exists(searchIn) == false)
             {
-                Message?.Invoke($"Search path not found! {Environment.NewLine}{Environment.NewLine} {searchIn}");
+                var message = $"Search path not found! {Environment.NewLine}{Environment.NewLine} {searchIn}";
+                Message?.Invoke(message);
                 cancel = true;
+                Finished?.Invoke(message);
                 return;
             }
 
@@ -129,9 +136,10 @@ namespace Assesment
                         Progress?.Invoke(dirToTouch);
 
                         var foundFilesByPattern = Directory.EnumerateFiles(dirToTouch, searchPattern);
-                        var cacheOfParents = new Dictionary<string, List<DirectoryInfo>>();
+                        var cacheOfParents = new ConcurrentDictionary<string, List<DirectoryInfo>>();
 
-                        foreach (var foundFileItem in foundFilesByPattern)
+                        Parallel.ForEach(foundFilesByPattern, new ParallelOptions() { MaxDegreeOfParallelism = threads },
+                        foundFileItem =>
                         {
                             if (cancel == true)
                             {
@@ -168,7 +176,7 @@ namespace Assesment
                             if (targetModel == null)
                             {
                                 int indexOfFoundParent = 0;
-                               
+
                                 while (targetModel == null && cancel == false)
                                 {
                                     targetModel = FindNodeInTreeByKey(parentsUntilRoot[indexOfFoundParent].FullName);
@@ -191,7 +199,7 @@ namespace Assesment
 
                             var newModel = AddNodeToTree(targetModel, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
                             AddedNodeToTree?.Invoke(newModel);
-                        }
+                        });
                     }
                 });
 

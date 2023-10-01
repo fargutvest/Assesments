@@ -17,6 +17,7 @@ namespace Assesment
         private string searchForCacheFilePath = "searchfor.cache";
         private string searchInCacheFilePath = "searchin.cache";
         private string countOfThreadsCacheFilePath = "countOfThreads.cache";
+        private bool isStarted = false;
 
         public Form()
         {
@@ -25,8 +26,13 @@ namespace Assesment
 
         private void Searcher_Finished(string message)
         {
+            isStarted = false;
             OnSafeAndDispatch(() =>
             {
+                if (message.Contains(Environment.NewLine))
+                {
+                    message = message.Split('\n')[0];
+                }
                 summaryLb.Text = message;
                 statusLb.Text = message;
             });
@@ -86,12 +92,20 @@ namespace Assesment
 
         private void startBtn_Click(object sender, EventArgs e)
         {
+            if (isStarted)
+            {
+                return;
+            }
+
+            isStarted = true;
+
             var searchFor = this.searchForCb.Text;
             searchFor = string.IsNullOrEmpty(searchFor) ? "*.*" : searchFor;
             var searchIn = this.searchInCb.Text;
             var threads = (int)countOfThreadsNud.Value;
             selectedTreeNode = null;
             goToFileBtn.Enabled = false;
+            summaryLb.Text = "";
 
             treeView1.Nodes.Clear();
             rootOfTree = null;
