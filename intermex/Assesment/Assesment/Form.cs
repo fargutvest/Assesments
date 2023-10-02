@@ -179,6 +179,7 @@ namespace Assesment
             if (File.Exists(countOfThreadsCacheFilePath))
             {
                 int.TryParse(File.ReadAllText(countOfThreadsCacheFilePath), out var countOfThreads);
+                countOfThreads = countOfThreads == 0 ? 1 : countOfThreads;
                 countOfThreadsNud.Value = countOfThreads > countOfThreadsNud.Maximum ? countOfThreadsNud.Maximum : countOfThreads;
             }
         }
