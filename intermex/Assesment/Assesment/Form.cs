@@ -64,19 +64,15 @@ namespace Assesment
 
         private void Searcher_TreeCreated(NodeModel rootModel)
         {
-            lock (syncRootTree)
+            rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
+            OnSafeAndDispatch(() =>
             {
-
-                rootOfTree = treeNodeSync.CreateTreeNode(rootModel);
-                OnSafeAndDispatch(() =>
-                {
-                    var scrollPos = treeView1.GetScrollPos();
-                    treeView1.Nodes.Clear();
-                    rootOfTree.ExpandAll();
-                    treeView1.Nodes.Add(rootOfTree);
-                    treeView1.SetScrollPos(scrollPos);
-                });
-            }
+                var scrollPos = treeView1.GetScrollPos();
+                treeView1.Nodes.Clear();
+                rootOfTree.ExpandAll();
+                treeView1.Nodes.Add(rootOfTree);
+                treeView1.SetScrollPos(scrollPos);
+            });
         }
 
         private void Searcher_AddedNodeToTree(NodeModel addedModel)
@@ -85,7 +81,7 @@ namespace Assesment
             {
                 if (rootOfTree != null)
                 {
-                    Point scrollPos = new Point(0, 0);
+                    var scrollPos = default(Point);
                     OnSafeAndDispatch(() =>
                     {
                         scrollPos = treeView1.GetScrollPos();
@@ -174,6 +170,10 @@ namespace Assesment
             {
                 searchInCb.Items.Clear();
                 searchInCb.Items.AddRange(File.ReadAllLines(searchInCacheFilePath));
+            }
+            if (searchInCb.Items.Count > 0)
+            {
+                searchInCb.SelectedIndex = 0;
             }
 
             if (File.Exists(countOfThreadsCacheFilePath))
