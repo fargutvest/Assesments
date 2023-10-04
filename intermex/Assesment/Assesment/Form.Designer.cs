@@ -41,13 +41,14 @@
             this.searchInCb = new System.Windows.Forms.ComboBox();
             this.searchForCb = new System.Windows.Forms.ComboBox();
             this.statusLb = new System.Windows.Forms.Label();
+            this.errorsLb = new System.Windows.Forms.Label();
+            this.errorsTb = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.countOfThreadsNud)).BeginInit();
             this.SuspendLayout();
             // 
             // treeView1
             // 
-            this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.treeView1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.treeView1.Location = new System.Drawing.Point(11, 161);
             this.treeView1.Name = "treeView1";
@@ -172,7 +173,7 @@
             // 
             // statusLb
             // 
-            this.statusLb.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.statusLb.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.statusLb.BackColor = System.Drawing.SystemColors.Control;
             this.statusLb.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -182,11 +183,34 @@
             this.statusLb.Size = new System.Drawing.Size(578, 20);
             this.statusLb.TabIndex = 24;
             // 
+            // errorsLb
+            // 
+            this.errorsLb.AutoSize = true;
+            this.errorsLb.Location = new System.Drawing.Point(8, 747);
+            this.errorsLb.Name = "errorsLb";
+            this.errorsLb.Size = new System.Drawing.Size(37, 13);
+            this.errorsLb.TabIndex = 26;
+            this.errorsLb.Text = "Errors:";
+            // 
+            // errorsTb
+            // 
+            this.errorsTb.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.errorsTb.Location = new System.Drawing.Point(11, 764);
+            this.errorsTb.Multiline = true;
+            this.errorsTb.Name = "errorsTb";
+            this.errorsTb.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.errorsTb.Size = new System.Drawing.Size(578, 61);
+            this.errorsTb.TabIndex = 27;
+            // 
             // Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(602, 747);
+            this.ClientSize = new System.Drawing.Size(602, 837);
+            this.Controls.Add(this.errorsTb);
+            this.Controls.Add(this.errorsLb);
             this.Controls.Add(this.statusLb);
             this.Controls.Add(this.searchForCb);
             this.Controls.Add(this.searchInCb);
@@ -224,6 +248,8 @@
         private System.Windows.Forms.ComboBox searchInCb;
         private System.Windows.Forms.ComboBox searchForCb;
         private System.Windows.Forms.Label statusLb;
+        private System.Windows.Forms.Label errorsLb;
+        private System.Windows.Forms.TextBox errorsTb;
     }
 }
 

@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace Assesment
@@ -18,6 +21,9 @@ namespace Assesment
         private string searchInCacheFilePath = "searchin.cache";
         private string countOfThreadsCacheFilePath = "countOfThreads.cache";
         private bool isStarted = false;
+        private ConcurrentDictionary<string, ConcurrentBag<string>> errors;
+        private bool errorsExpanded;
+        private Size initialMinSize;
 
         public Form()
         {
@@ -38,6 +44,7 @@ namespace Assesment
             searcher.Progress += Searcher_Progress;
             searcher.Finished += Searcher_Finished;
             searcher.IconAdded += Searcher_IconAdded;
+            searcher.Error += Searcher_Error;
 
             countOfThreadsNud.Maximum = Environment.ProcessorCount;
             var contextMenu = new ContextMenu();
@@ -46,6 +53,60 @@ namespace Assesment
                 Clipboard.SetText(statusLb.Text);
             });
             statusLb.ContextMenu = contextMenu;
+
+            initialMinSize = this.MinimumSize;
+            this.Size = this.MinimumSize;
+        }
+
+        private void Searcher_Error(string error, string message)
+        {
+            if (errors.ContainsKey(error))
+            {
+                errors[error].Add(message);
+            }
+            else
+            {
+                errors[error] = new ConcurrentBag<string> { message };
+            }
+
+            if (errors.Any())
+            {
+                OnSafeAndDispatch(() => 
+                {
+                    if (errorsExpanded == false)
+                    {
+                        ExpandErrors();
+                    }
+
+                    errorsTb.Text = "";
+
+                    var sb = new StringBuilder();
+                    foreach (var err in errors)
+                    {
+                        sb.AppendLine($"{err}:");
+                        foreach (var msg in err.Value)
+                        {
+                            sb.AppendLine($"{msg}");
+                        }
+                    }
+
+                    errorsTb.Text = sb.ToString();
+                });
+            }
+        }
+
+       
+        private void ExpandErrors()
+        {
+            this.MinimumSize = new Size(initialMinSize.Width, initialMinSize.Height + 80);
+            errorsExpanded = true;
+        }
+
+        private void CollapseErrors()
+        {
+            this.MinimumSize = initialMinSize;
+            this.Size = initialMinSize;
+            errorsExpanded = false;
         }
 
         private void Searcher_Finished(string message)
@@ -153,6 +214,9 @@ namespace Assesment
             File.WriteAllLines(searchForCacheFilePath, searchForCb.Items.Cast<string>());
 
             File.WriteAllText(countOfThreadsCacheFilePath, threads.ToString());
+            errors = new ConcurrentDictionary<string, ConcurrentBag<string>>();
+            CollapseErrors();
+            errorsTb.Text = "";
 
             searcher.Start(searchFor, searchIn, threads);
         }

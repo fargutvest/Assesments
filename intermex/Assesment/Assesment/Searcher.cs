@@ -19,7 +19,6 @@ namespace Assesment
         private Bitmap folderIcon = (Bitmap)Image.FromFile((string)Properties.Resources.ResourceManager.GetObject("FolderIcon"));
         private NodeModel rootOfTree;
         private object syncRootOfTree = new object();
-        private ConcurrentBag<string> errors = new ConcurrentBag<string>();
 
         public event Action<NodeModel> TreeCreated;
         public event Action<NodeModel> AddedNodeToTree;
@@ -27,6 +26,7 @@ namespace Assesment
         public event Action<string> Progress;
         public event Action<string> Finished;
         public event Action<string> Message;
+        public event Action<string, string> Error;
 
 
         public void Start(string searchFor, string searchIn, int countOfThreads)
@@ -107,10 +107,7 @@ namespace Assesment
                 }
 
                 Finished?.Invoke($"[{countOfFiles} files and {directories.Count} directories found] - {searchStatus}");
-                if (errors.Any())
-                {
-                    Message?.Invoke(string.Join(Environment.NewLine, errors));
-                }
+              
                 cancel = true;
             });
         }
@@ -203,11 +200,19 @@ namespace Assesment
                                 targetModel = AddNodeToTree(targetModel, dirOfFoundFileItem.FullName, dirOfFoundFileItem.Name, folderIconKey);
                             }
 
-                            // different exe files may have different icons
-                            var fileIconKey = foundFileItem.EndsWith(".exe") ? foundFileItem : Path.GetExtension(foundFileItem);
-                            var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
-                            TryRegisterIcon(fileIconKey, fileIcon);
-
+                            string fileIconKey = ""; 
+                            try
+                            {
+                                // different exe files may have different icons
+                                fileIconKey = foundFileItem.EndsWith(".exe") ? foundFileItem : Path.GetExtension(foundFileItem);
+                                var fileIcon = Icon.ExtractAssociatedIcon(foundFileItem).ToBitmap();
+                                TryRegisterIcon(fileIconKey, fileIcon);
+                            }
+                            catch (Exception ex) 
+                            {
+                                Error?.Invoke(ex.GetType().Name, foundFileItem);
+                            }
+                           
                             var newModel = AddNodeToTree(targetModel, foundFileItem, Path.GetFileName(foundFileItem), fileIconKey, isFile: true);
                             AddedNodeToTree?.Invoke(newModel);
                         });
@@ -226,7 +231,7 @@ namespace Assesment
             }
             catch (Exception ex)
             {
-                errors.Add($"{ex.GetType()} for {searchIn}.");
+                Error?.Invoke(ex.GetType().Name, searchIn);
                 Debug.WriteLine(ex.Message);
             }
         }
